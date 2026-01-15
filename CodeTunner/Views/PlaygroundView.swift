@@ -5,6 +5,8 @@
 //  Swift Playgrounds-style code playground with syntax highlighting
 //  Copyright © 2025 SPU AI CLUB. All rights reserved.
 //
+//  Tirawat Nantamas | Dotmini Software | SPU AI CLUB
+//
 
 import SwiftUI
 import WebKit
@@ -47,6 +49,14 @@ struct PlaygroundView: View {
     @State private var isPreviewLoading: Bool = false
     @State private var showingSettings: Bool = false
     
+    // Cell Mode Support
+    @State private var isCellMode: Bool = false
+    @State private var cells: [PlaygroundCellModel] = [PlaygroundCellModel(code: "print('Hello from Cell 1')", colorTheme: .none)]
+    @State private var executionTask: Task<Void, Never>?
+    
+    // Catalogue Support
+    @State private var showCatalogue: Bool = false
+    
     // All languages supported by backend runner
     let supportedLanguages = [
         "python", "r", "ruby",                     // Scripting
@@ -74,6 +84,12 @@ struct PlaygroundView: View {
             // Main Content
             // Main Content
             HSplitView {
+                if showCatalogue {
+                    CatalogueSidebar(onSelectItem: handleCatalogueItem)
+                        .transition(.move(edge: .leading))
+                    Divider()
+                }
+                
                 // Left Pane: Editor & Data
                 VStack(spacing: 0) {
                     if showDataFiles {
@@ -82,12 +98,16 @@ struct PlaygroundView: View {
                         Divider()
                     }
                     
-                    codeEditorPanel
+                    if isCellMode {
+                        cellEditorPanel
+                    } else {
+                        codeEditorPanel
+                    }
                 }
                 .frame(minWidth: 400, maxWidth: .infinity, maxHeight: .infinity)
                 
                 // Right Pane: Output & Preview
-                if showOutput || showGUIPreview {
+                if (showOutput || showGUIPreview) && !isCellMode {
                     VStack(spacing: 0) {
                         if showGUIPreview {
                             guiPreviewPanel
@@ -209,6 +229,21 @@ struct PlaygroundView: View {
                 NodeVersionPicker()
             }
             
+            Divider()
+                .frame(height: 20)
+            
+            // Catalogue Toggle
+            Toggle(isOn: $showCatalogue) {
+                HStack(spacing: 4) {
+                    Image(systemName: "book.fill")
+                    Text("Catalogue")
+                }
+                .font(.system(size: 12))
+            }
+            .toggleStyle(.button)
+            .buttonStyle(.bordered)
+            .tint(showCatalogue ? .blue : .secondary)
+            
             Spacer()
             
             // Data Files Toggle
@@ -246,6 +281,57 @@ struct PlaygroundView: View {
             .toggleStyle(.button)
             .buttonStyle(.bordered)
             .tint(showGUIPreview ? .pink : .secondary)
+            .disabled(isCellMode)
+            
+            Divider()
+                .frame(height: 20)
+            
+            // Cell Mode Toggle
+            Toggle(isOn: $isCellMode) {
+                HStack(spacing: 4) {
+                    Image(systemName: "square.grid.2x2")
+                    Text("Cell Mode")
+                }
+                .font(.system(size: 12, weight: .bold))
+            }
+            .toggleStyle(.button)
+            .buttonStyle(.bordered)
+            .tint(isCellMode ? .purple : .secondary)
+            
+            if isCellMode {
+                // Run By Color Menu
+                Menu {
+                    ForEach(getUsedColors()) { theme in
+                        Button(action: { runCellsByColor(theme) }) {
+                            Label("Run \(theme.rawValue)", systemImage: "play.fill")
+                                .foregroundColor(theme.iconColor)
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    Button(action: { runAllCells() }) {
+                        Label("Run All Cells", systemImage: "play.circle.fill")
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "play.fill")
+                        Text("Run By Color")
+                    }
+                    .font(.system(size: 12))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.purple.opacity(0.1))
+                    .cornerRadius(4)
+                }
+                .menuStyle(.borderlessButton)
+                
+                Button(action: addCell) {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(.accentColor)
+                }
+                .buttonStyle(.plain)
+            }
             
             Divider()
                 .frame(height: 20)
@@ -290,9 +376,18 @@ struct PlaygroundView: View {
                     executionTask?.cancel()
                     autoRunTask?.cancel()
                     isExecuting = false
+                    
+                    // Also stop cells if in cell mode
+                    if isCellMode {
+                        for cell in cells { cell.isExecuting = false }
+                    }
                 } else {
-                    executionTask = Task {
-                        await runCode()
+                    if isCellMode {
+                        runAllCells()
+                    } else {
+                        executionTask = Task {
+                            await runCode()
+                        }
                     }
                 }
             }) {
@@ -1567,10 +1662,10 @@ struct PlaygroundView: View {
             """
         case "rust":
             code = """
-fn main() {
-    println!("Hello from Rust!");
-}
-"""
+            fn main() {
+                println!("Hello from Rust!");
+            }
+            """
         case "javascript":
             code = """
             // JavaScript Playground
@@ -1612,7 +1707,7 @@ fn main() {
                 x := 2 + 2
                 fmt.Printf("2 + 2 = %d\\n", x)
             }
-            \"\"\"
+            """
 
         case "r":
             code = """
@@ -1631,11 +1726,10 @@ fn main() {
             print(df)
             
             # Summary statistics
-            print(summary(df$score))
+            print(summary(df))
             
-            # Try loading tidyverse (uncomment if installed)
-            # library(tidyverse)
-            # df %>% filter(age > 25) %>% arrange(desc(score))
+            # Mean of age
+            print(paste("Mean age:", mean(df["age"][[1]])))
             """
 
         case "d":
@@ -1719,15 +1813,15 @@ fn main() {
             """
             
         case "ruby", "rb":
-            code = #"""
+            code = """
             # Ruby Playground
             puts "Hello, Ruby!"
             
             # Array operations
             numbers = [1, 2, 3, 4, 5]
             squares = numbers.map { |n| n ** 2 }
-            puts "Squares: #{squares}"
-            """#
+            puts squares.inspect
+            """
             
         case "c":
             code = """
@@ -1771,11 +1865,11 @@ fn main() {
             
             val numbers = listOf(1, 2, 3, 4, 5)
             val sum = numbers.sum()
-            println("Sum: $sum")
+            println("Sum: " + sum)
             
             // Lambda
             val squares = numbers.map { it * it }
-            println("Squares: $squares")
+            println("Squares: " + squares)
             """
             
         case "lua":
@@ -1803,8 +1897,8 @@ fn main() {
             
             my @numbers = (1, 2, 3, 4, 5);
             my $sum = 0;
-            $sum += $_ for @numbers;
-            print "Sum: $sum\\n";
+            foreach my $n (@numbers) { $sum += $n; }
+            print "Sum: ", $sum, "\\n";
             """
             
         case "php":
@@ -1815,9 +1909,9 @@ fn main() {
             
             $numbers = [1, 2, 3, 4, 5];
             $sum = array_sum($numbers);
-            echo "Sum: $sum\\n";
+            echo "Sum: " . $sum . "\\n";
             
-            $squares = array_map(fn($n) => $n * $n, $numbers);
+            $squares = array_map(function($n) { return $n * $n; }, $numbers);
             echo "Squares: " . implode(", ", $squares) . "\\n";
             ?>
             """
@@ -1830,10 +1924,10 @@ fn main() {
             
             # Variables
             NAME="MicroCode"
-            echo "Welcome to $NAME"
+            echo "Welcome to MicroCode"
             
             # Loop
-            for i in {1..5}; do
+            for i in 1 2 3 4 5; do
                 echo "Number: $i"
             done
             """
@@ -1869,6 +1963,97 @@ fn main() {
             
         default:
             code = "print('Hello, World!')"
+        }
+    }
+
+    // MARK: - Cell Mode & Catalogue Logic
+    
+    private var cellEditorPanel: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                ForEach(cells) { cell in
+                    PlaygroundCellView(
+                        language: language,
+                        onRun: { runCell(cell: cell) },
+                        onDelete: { deleteCell(cell: cell) }
+                    )
+                    .environmentObject(appState)
+                    .environmentObject(cell)
+                }
+                
+                Button(action: addCell) {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Add New Cell")
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal, 8)
+                }
+                .buttonStyle(.plain)
+                .padding(.bottom, 20)
+            }
+            .padding(.top, 12)
+        }
+    }
+    
+    func getUsedColors() -> [CellColorTheme] {
+        let colors = Set(cells.map { $0.colorTheme })
+        return Array(colors).sorted { $0.rawValue < $1.rawValue }
+    }
+    
+    func runCell(cell: PlaygroundCellModel) {
+        Task {
+            cell.isExecuting = true
+            cell.output = ""
+            let startTime = Date()
+            
+            do {
+                let result = try await BackendService.shared.executeCode(code: cell.code, language: language)
+                await MainActor.run {
+                    cell.output = result.stdout + result.stderr
+                    cell.executionTime = Date().timeIntervalSince(startTime)
+                    cell.isExecuting = false
+                }
+            } catch {
+                await MainActor.run {
+                    cell.output = "Error: \(error.localizedDescription)"
+                    cell.isExecuting = false
+                }
+            }
+        }
+    }
+    
+    func runCellsByColor(_ theme: CellColorTheme) {
+        for cell in cells where cell.colorTheme == theme {
+            runCell(cell: cell)
+        }
+    }
+    
+    func runAllCells() {
+        for cell in cells {
+            runCell(cell: cell)
+        }
+    }
+    
+    func addCell() {
+        cells.append(PlaygroundCellModel(code: "", colorTheme: .none))
+    }
+    
+    func deleteCell(cell: PlaygroundCellModel) {
+        cells.removeAll { $0.id == cell.id }
+        if cells.isEmpty {
+            addCell()
+        }
+    }
+    
+    func handleCatalogueItem(code: String) {
+        if isCellMode {
+            cells.append(PlaygroundCellModel(code: code, colorTheme: .none))
+        } else {
+            self.code += "\n" + code
         }
     }
 
