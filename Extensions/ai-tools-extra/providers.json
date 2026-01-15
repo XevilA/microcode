@@ -1,0 +1,249 @@
+{
+    "version": "1.0.0",
+    "providers": [
+        {
+            "id": "ollama",
+            "name": "Ollama (Local)",
+            "description": "Run LLMs locally with Ollama",
+            "icon": "desktopcomputer",
+            "type": "local",
+            "baseUrl": "http://localhost:11434",
+            "endpoints": {
+                "chat": "/api/chat",
+                "generate": "/api/generate",
+                "models": "/api/tags"
+            },
+            "models": [
+                {
+                    "id": "llama2",
+                    "name": "Llama 2",
+                    "context": 4096
+                },
+                {
+                    "id": "codellama",
+                    "name": "Code Llama",
+                    "context": 16384,
+                    "specialization": "code"
+                },
+                {
+                    "id": "mistral",
+                    "name": "Mistral",
+                    "context": 8192
+                },
+                {
+                    "id": "mixtral",
+                    "name": "Mixtral 8x7B",
+                    "context": 32768
+                },
+                {
+                    "id": "phi",
+                    "name": "Microsoft Phi-2",
+                    "context": 2048
+                },
+                {
+                    "id": "neural-chat",
+                    "name": "Neural Chat",
+                    "context": 8192
+                },
+                {
+                    "id": "starling-lm",
+                    "name": "Starling LM",
+                    "context": 8192
+                },
+                {
+                    "id": "deepseek-coder",
+                    "name": "DeepSeek Coder",
+                    "context": 16384,
+                    "specialization": "code"
+                }
+            ],
+            "requiresApiKey": false,
+            "settings": {
+                "temperature": {
+                    "type": "number",
+                    "default": 0.7,
+                    "min": 0,
+                    "max": 2
+                },
+                "top_p": {
+                    "type": "number",
+                    "default": 0.9,
+                    "min": 0,
+                    "max": 1
+                },
+                "top_k": {
+                    "type": "number",
+                    "default": 40,
+                    "min": 1,
+                    "max": 100
+                }
+            }
+        },
+        {
+            "id": "lm-studio",
+            "name": "LM Studio",
+            "description": "Use models from LM Studio",
+            "icon": "laptopcomputer",
+            "type": "local",
+            "baseUrl": "http://localhost:1234",
+            "endpoints": {
+                "chat": "/v1/chat/completions",
+                "models": "/v1/models"
+            },
+            "openAICompatible": true,
+            "requiresApiKey": false,
+            "settings": {
+                "temperature": {
+                    "type": "number",
+                    "default": 0.7,
+                    "min": 0,
+                    "max": 2
+                }
+            }
+        },
+        {
+            "id": "groq",
+            "name": "Groq",
+            "description": "Ultra-fast inference with Groq",
+            "icon": "bolt.fill",
+            "type": "cloud",
+            "baseUrl": "https://api.groq.com/openai/v1",
+            "endpoints": {
+                "chat": "/chat/completions"
+            },
+            "models": [
+                {
+                    "id": "llama-3.1-70b-versatile",
+                    "name": "Llama 3.1 70B",
+                    "context": 131072
+                },
+                {
+                    "id": "llama-3.1-8b-instant",
+                    "name": "Llama 3.1 8B",
+                    "context": 131072
+                },
+                {
+                    "id": "mixtral-8x7b-32768",
+                    "name": "Mixtral 8x7B",
+                    "context": 32768
+                },
+                {
+                    "id": "gemma2-9b-it",
+                    "name": "Gemma 2 9B",
+                    "context": 8192
+                }
+            ],
+            "openAICompatible": true,
+            "requiresApiKey": true,
+            "apiKeyName": "GROQ_API_KEY"
+        },
+        {
+            "id": "together",
+            "name": "Together AI",
+            "description": "Run open-source models via Together",
+            "icon": "person.3.fill",
+            "type": "cloud",
+            "baseUrl": "https://api.together.xyz/v1",
+            "endpoints": {
+                "chat": "/chat/completions"
+            },
+            "models": [
+                {
+                    "id": "meta-llama/Llama-3-70b-chat-hf",
+                    "name": "Llama 3 70B",
+                    "context": 8192
+                },
+                {
+                    "id": "meta-llama/Llama-3-8b-chat-hf",
+                    "name": "Llama 3 8B",
+                    "context": 8192
+                },
+                {
+                    "id": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+                    "name": "Mixtral 8x7B",
+                    "context": 32768
+                },
+                {
+                    "id": "codellama/CodeLlama-34b-Instruct-hf",
+                    "name": "CodeLlama 34B",
+                    "context": 16384
+                }
+            ],
+            "openAICompatible": true,
+            "requiresApiKey": true,
+            "apiKeyName": "TOGETHER_API_KEY"
+        },
+        {
+            "id": "huggingface",
+            "name": "Hugging Face",
+            "description": "Use Hugging Face Inference API",
+            "icon": "face.smiling.fill",
+            "type": "cloud",
+            "baseUrl": "https://api-inference.huggingface.co",
+            "endpoints": {
+                "inference": "/models"
+            },
+            "models": [
+                {
+                    "id": "bigcode/starcoder2-15b",
+                    "name": "StarCoder2 15B",
+                    "specialization": "code"
+                },
+                {
+                    "id": "meta-llama/Meta-Llama-3-8B-Instruct",
+                    "name": "Llama 3 8B"
+                },
+                {
+                    "id": "microsoft/Phi-3-mini-4k-instruct",
+                    "name": "Phi-3 Mini"
+                }
+            ],
+            "requiresApiKey": true,
+            "apiKeyName": "HF_API_TOKEN"
+        }
+    ],
+    "tools": [
+        {
+            "id": "code-review",
+            "name": "AI Code Review",
+            "description": "Comprehensive code review with AI",
+            "icon": "checkmark.circle.fill",
+            "command": "ai.codeReview"
+        },
+        {
+            "id": "generate-tests",
+            "name": "Generate Tests",
+            "description": "Auto-generate unit tests for selected code",
+            "icon": "testtube.2",
+            "command": "ai.generateTests"
+        },
+        {
+            "id": "explain-code",
+            "name": "Explain Code",
+            "description": "Get detailed explanation of selected code",
+            "icon": "lightbulb.fill",
+            "command": "ai.explainCode"
+        },
+        {
+            "id": "fix-bugs",
+            "name": "Fix Bugs",
+            "description": "Detect and fix bugs in selected code",
+            "icon": "ant.fill",
+            "command": "ai.fixBugs"
+        },
+        {
+            "id": "optimize",
+            "name": "Optimize Code",
+            "description": "Optimize code for performance",
+            "icon": "gauge.with.dots.needle.67percent",
+            "command": "ai.optimizeCode"
+        },
+        {
+            "id": "translate",
+            "name": "Translate Code",
+            "description": "Translate code to another language",
+            "icon": "arrow.left.arrow.right",
+            "command": "ai.translateCode"
+        }
+    ]
+}

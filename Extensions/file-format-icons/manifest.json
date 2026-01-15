@@ -1,0 +1,19 @@
+{
+    "id": "com.projectidx.file-format-icons",
+    "name": "File Format Icons",
+    "version": "1.0.0",
+    "author": "Project IDX Team",
+    "description": "Beautiful file type icons for better visual identification of files",
+    "type": "file-format",
+    "runtime": "javascript",
+    "main": "icons.json",
+    "icon": "doc.badge.gearshape",
+    "repository": "https://github.com/projectidx/extensions",
+    "license": "MIT",
+    "keywords": [
+        "icons",
+        "files",
+        "format",
+        "visual"
+    ]
+}

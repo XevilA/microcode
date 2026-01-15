@@ -1,0 +1,21 @@
+{
+    "id": "com.projectidx.ai-tools-extra",
+    "name": "AI Tools Extra",
+    "version": "1.0.0",
+    "author": "Project IDX Team",
+    "description": "Additional AI tools and providers including local LLMs and specialized models",
+    "type": "ai-provider",
+    "runtime": "javascript",
+    "main": "providers.json",
+    "icon": "brain.head.profile",
+    "repository": "https://github.com/projectidx/extensions",
+    "license": "MIT",
+    "keywords": [
+        "ai",
+        "llm",
+        "providers",
+        "tools",
+        "ollama",
+        "local"
+    ]
+}
