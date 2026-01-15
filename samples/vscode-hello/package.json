@@ -1,0 +1,20 @@
+{
+    "name": "vscode-hello",
+    "displayName": "VS Code Hello",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "activationEvents": [
+        "onCommand:hello.vscode"
+    ],
+    "main": "./extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "hello.vscode",
+                "title": "Hello from VS Code Compat"
+            }
+        ]
+    }
+}

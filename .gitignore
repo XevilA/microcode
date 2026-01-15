@@ -1,0 +1,111 @@
+# =============================================================================
+# MicroCode (CodeTunner) - .gitignore
+# เก็บเฉพาะ Source Code, ไม่เก็บ Build Artifacts และ Generated Files
+# =============================================================================
+
+# ----- macOS -----
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ----- Xcode -----
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+DerivedData/
+*.moved-aside
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+!default.pbxuser
+!default.mode1v3
+!default.mode2v3
+!default.perspectivev3
+
+# ----- Swift Package Manager -----
+.build/
+.build_dist/
+.swiftpm/
+Package.resolved
+*.xcodeproj
+Packages/
+
+# ----- Rust / Cargo -----
+backend/target/
+extension-host/target/
+**/target/
+**/*.rs.bk
+Cargo.lock
+
+# ----- Node.js -----
+node_modules/
+vscode-compat-host/node_modules/
+vscode-compat-host/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+
+# ----- Build Outputs & Artifacts -----
+*.app
+*.pkg
+*.dmg
+*.ipa
+*.dSYM/
+*.dSYM.zip
+Dist/
+build/
+
+# ----- Logs -----
+*.log
+*.txt
+!README.txt
+!Welcome.rtf
+logs/
+
+# ----- IDE & Editors -----
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ----- AI Agent & Tooling -----
+.agent/
+.claude/
+.gemini/
+.antigravity/
+.runtime_cache/
+
+# ----- Environment & Secrets -----
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+
+# ----- Generated / Temp Files -----
+*.o
+*.a
+*.dylib
+*.so
+*.out
+*.class
+*.jar
+
+# ----- Preview & Release Apps (already built) -----
+CodeTunner.app/
+CodeTunner_New.app/
+CodeTunner_Release.app/
+Project\ IDX.app/
+
+# ----- Installer Assets (large images) -----
+installer_background*.png
+
+# ----- Presentation (not source) -----
+presentation/

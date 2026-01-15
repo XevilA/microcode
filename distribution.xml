@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="1">
+    <title>CodeTunner</title>
+    <welcome file="Welcome.rtf"/>
+    <background file="installer_background.png" alignment="bottomleft" scaling="none"/>
+    <options customize="never" require-scripts="false"/>
+    <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
+    <choices-outline>
+        <line choice="default"/>
+    </choices-outline>
+    <choice id="default" title="CodeTunner Application">
+        <pkg-ref id="com.dotmini.codetunner"/>
+    </choice>
+    <pkg-ref id="com.dotmini.codetunner" version="1.0" onConclusion="none">CodeTunnerComponent.pkg</pkg-ref>
+</installer-gui-script>

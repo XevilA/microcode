@@ -1,0 +1,220 @@
+{
+    "version": "1.0.0",
+    "iconDefinitions": {
+        "swift": {
+            "systemName": "swift",
+            "color": "#f05138"
+        },
+        "rust": {
+            "systemName": "gearshape.2.fill",
+            "color": "#dea584"
+        },
+        "python": {
+            "systemName": "chevron.left.forwardslash.chevron.right",
+            "color": "#3776ab"
+        },
+        "javascript": {
+            "systemName": "j.square.fill",
+            "color": "#f7df1e"
+        },
+        "typescript": {
+            "systemName": "t.square.fill",
+            "color": "#3178c6"
+        },
+        "html": {
+            "systemName": "chevron.left.forwardslash.chevron.right",
+            "color": "#e34c26"
+        },
+        "css": {
+            "systemName": "number.square.fill",
+            "color": "#264de4"
+        },
+        "json": {
+            "systemName": "curlybraces",
+            "color": "#cbcb41"
+        },
+        "yaml": {
+            "systemName": "text.alignleft",
+            "color": "#cb171e"
+        },
+        "markdown": {
+            "systemName": "m.square.fill",
+            "color": "#083fa1"
+        },
+        "go": {
+            "systemName": "g.circle.fill",
+            "color": "#00add8"
+        },
+        "java": {
+            "systemName": "cup.and.saucer.fill",
+            "color": "#5382a1"
+        },
+        "kotlin": {
+            "systemName": "k.square.fill",
+            "color": "#7f52ff"
+        },
+        "csharp": {
+            "systemName": "c.square.fill",
+            "color": "#9b4f96"
+        },
+        "cpp": {
+            "systemName": "plus.square.fill",
+            "color": "#00599c"
+        },
+        "c": {
+            "systemName": "c.circle.fill",
+            "color": "#a8b9cc"
+        },
+        "ruby": {
+            "systemName": "diamond.fill",
+            "color": "#cc342d"
+        },
+        "php": {
+            "systemName": "p.square.fill",
+            "color": "#4f5d95"
+        },
+        "sql": {
+            "systemName": "cylinder.fill",
+            "color": "#e38c00"
+        },
+        "shell": {
+            "systemName": "terminal.fill",
+            "color": "#4eaa25"
+        },
+        "dockerfile": {
+            "systemName": "shippingbox.fill",
+            "color": "#2496ed"
+        },
+        "git": {
+            "systemName": "arrow.triangle.branch",
+            "color": "#f05033"
+        },
+        "pdf": {
+            "systemName": "doc.fill",
+            "color": "#ff0000"
+        },
+        "image": {
+            "systemName": "photo.fill",
+            "color": "#4caf50"
+        },
+        "video": {
+            "systemName": "film.fill",
+            "color": "#9c27b0"
+        },
+        "audio": {
+            "systemName": "waveform",
+            "color": "#ff9800"
+        },
+        "archive": {
+            "systemName": "archivebox.fill",
+            "color": "#795548"
+        },
+        "font": {
+            "systemName": "textformat",
+            "color": "#607d8b"
+        },
+        "config": {
+            "systemName": "gearshape.fill",
+            "color": "#78909c"
+        },
+        "lock": {
+            "systemName": "lock.fill",
+            "color": "#9e9e9e"
+        },
+        "license": {
+            "systemName": "scroll.fill",
+            "color": "#8d6e63"
+        },
+        "readme": {
+            "systemName": "book.fill",
+            "color": "#2196f3"
+        },
+        "default": {
+            "systemName": "doc.text.fill",
+            "color": "#9e9e9e"
+        }
+    },
+    "extensionMappings": {
+        ".swift": "swift",
+        ".rs": "rust",
+        ".py": "python",
+        ".ipynb": "python",
+        ".js": "javascript",
+        ".jsx": "javascript",
+        ".ts": "typescript",
+        ".tsx": "typescript",
+        ".html": "html",
+        ".htm": "html",
+        ".css": "css",
+        ".scss": "css",
+        ".less": "css",
+        ".json": "json",
+        ".yaml": "yaml",
+        ".yml": "yaml",
+        ".md": "markdown",
+        ".markdown": "markdown",
+        ".go": "go",
+        ".java": "java",
+        ".kt": "kotlin",
+        ".kts": "kotlin",
+        ".cs": "csharp",
+        ".cpp": "cpp",
+        ".cc": "cpp",
+        ".cxx": "cpp",
+        ".hpp": "cpp",
+        ".c": "c",
+        ".h": "c",
+        ".rb": "ruby",
+        ".php": "php",
+        ".sql": "sql",
+        ".sh": "shell",
+        ".bash": "shell",
+        ".zsh": "shell",
+        ".dockerfile": "dockerfile",
+        ".gitignore": "git",
+        ".gitattributes": "git",
+        ".pdf": "pdf",
+        ".png": "image",
+        ".jpg": "image",
+        ".jpeg": "image",
+        ".gif": "image",
+        ".svg": "image",
+        ".webp": "image",
+        ".mp4": "video",
+        ".mov": "video",
+        ".avi": "video",
+        ".webm": "video",
+        ".mp3": "audio",
+        ".wav": "audio",
+        ".flac": "audio",
+        ".zip": "archive",
+        ".tar": "archive",
+        ".gz": "archive",
+        ".7z": "archive",
+        ".rar": "archive",
+        ".ttf": "font",
+        ".otf": "font",
+        ".woff": "font",
+        ".woff2": "font",
+        ".toml": "config",
+        ".ini": "config",
+        ".cfg": "config",
+        ".lock": "lock",
+        ".LICENSE": "license",
+        ".README": "readme"
+    },
+    "filenameMappings": {
+        "Dockerfile": "dockerfile",
+        "Makefile": "config",
+        "Cargo.toml": "rust",
+        "Package.swift": "swift",
+        "package.json": "javascript",
+        "tsconfig.json": "typescript",
+        "README.md": "readme",
+        "LICENSE": "license",
+        "LICENSE.md": "license",
+        ".gitignore": "git",
+        ".env": "config",
+        "docker-compose.yml": "dockerfile"
+    }
+}

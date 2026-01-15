@@ -1,0 +1,20 @@
+{
+    "id": "demo.native-hello",
+    "version": "0.0.1",
+    "name": "Native Hello",
+    "main": "extension.wasm",
+    "capabilities": [
+        "ui:statusbar"
+    ],
+    "activationEvents": [
+        "onCommand:demo.hello"
+    ],
+    "contributes": {
+        "commands": [
+            {
+                "command": "demo.hello",
+                "title": "Hello from Native Rust!"
+            }
+        ]
+    }
+}

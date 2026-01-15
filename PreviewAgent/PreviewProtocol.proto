@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package preview;
+
+service PreviewService {
+  // Request to load a new dynamic library
+  rpc LoadModule (LoadModuleRequest) returns (LoadModuleResponse);
+  
+  // Health check / Keep-alive
+  rpc Ping (Empty) returns (Empty);
+}
+
+message LoadModuleRequest {
+  string dylib_path = 1;     // Absolute path to the compiled .dylib
+  string module_name = 2;    // Name of the module (for namespacing)
+  string source_file = 3;    // Original source file (for error mapping)
+}
+
+message LoadModuleResponse {
+  bool success = 1;
+  string error_message = 2;
+  int64 render_time_ns = 3;  // Performance metric
+}
+
+message Empty {}

@@ -1,0 +1,14 @@
+{
+    "id": "com.projectidx.google-colab-theme",
+    "name": "Google Colab Theme",
+    "version": "1.0.0",
+    "author": "Project IDX Team",
+    "description": "Dark theme inspired by Google Colab's interface with warm orange accents",
+    "type": "theme",
+    "runtime": "javascript",
+    "main": "theme.json",
+    "icon": "paintpalette.fill",
+    "repository": "https://github.com/projectidx/extensions",
+    "license": "MIT",
+    "keywords": ["theme", "dark", "google", "colab", "jupyter"]
+}
