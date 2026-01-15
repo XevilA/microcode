@@ -1203,7 +1203,6 @@ struct PlaygroundView: View {
     
     // Unified Coordinator Task to serialize Analysis -> Execution
     @State private var coordinatorTask: Task<Void, Never>?
-    @State private var executionTask: Task<Void, Never>? // Keep for cancellation via "Stop" button
     
     private func handleCodeChange() {
         coordinatorTask?.cancel()
@@ -1973,6 +1972,7 @@ struct PlaygroundView: View {
             VStack(spacing: 12) {
                 ForEach(cells) { cell in
                     PlaygroundCellView(
+                        cell: cell,
                         language: language,
                         onRun: { runCell(cell: cell) },
                         onDelete: { deleteCell(cell: cell) }

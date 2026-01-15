@@ -41,6 +41,7 @@ let package = Package(
                 "Managers/ReportLogManager.swift",
                 "Models/AppState.swift",
                 "Models/AnyCodable.swift",
+                "Models/CellModels.swift",
                 "Services/BackendService.swift",
                 "Services/TerminalService.swift",
                 "Services/SimulatorManager.swift",
@@ -54,6 +55,8 @@ let package = Package(
                 "Views/CodeAnalysisWindow.swift",
                 "Views/ExportWindow.swift",
                 "Views/PlaygroundView.swift",
+                "Views/PlaygroundCellView.swift",
+                "Views/CatalogueSidebar.swift",
                 "Views/SyntaxHighlighter.swift",
                 "Views/StatusBarView.swift",
                 "Views/FileTabBar.swift",
@@ -180,6 +183,7 @@ let package = Package(
                 "Extensions/ColorExtensions.swift",
                 "Extensions/Compatibility.swift",
                 "Extensions/NSColor+Hex.swift",
+                "Helpers/GraphemeHelper.swift",
             ],
             resources: [
                 // .process("Views/Metal/Shaders.metal")

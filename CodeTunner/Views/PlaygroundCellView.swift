@@ -19,6 +19,13 @@ struct PlaygroundCellView: View {
     
     @State private var isHovering = false
     
+    init(cell: PlaygroundCellModel, language: String, onRun: @escaping () -> Void, onDelete: @escaping () -> Void) {
+        self.cell = cell
+        self.language = language
+        self.onRun = onRun
+        self.onDelete = onDelete
+    }
+    
     private var cellBackground: Color {
         cell.colorTheme == .none ? 
             (appState.appTheme.isDark ? Color.black.opacity(0.2) : Color.white.opacity(0.5)) : 
