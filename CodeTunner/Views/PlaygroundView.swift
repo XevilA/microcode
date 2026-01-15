@@ -47,7 +47,17 @@ struct PlaygroundView: View {
     @State private var isPreviewLoading: Bool = false
     @State private var showingSettings: Bool = false
     
-    let supportedLanguages = ["python", "swift", "rust", "javascript", "typescript", "go", "d", "c++", "objective-c"]
+    // All languages supported by backend runner
+    let supportedLanguages = [
+        "python", "r", "ruby",                     // Scripting
+        "swift", "objective-c", "objective-c++",   // Apple
+        "rust", "go", "c", "c++", "d",             // Systems
+        "javascript", "typescript",                 // Web
+        "java", "kotlin",                          // JVM
+        "lua", "perl", "php",                      // Other Scripting
+        "sql", "shell", "bash",                    // Data/DevOps
+        "ardium"                                   // Custom
+    ]
     
     // Playground data directory
     private var playgroundDirectory: URL {
@@ -1602,6 +1612,30 @@ fn main() {
                 x := 2 + 2
                 fmt.Printf("2 + 2 = %d\\n", x)
             }
+            \"\"\"
+
+        case "r":
+            code = """
+            # R Playground
+            # Tidyverse is supported if installed
+            
+            print("Hello, R!")
+            
+            # Basic data frame
+            df <- data.frame(
+                name = c("Alice", "Bob", "Charlie"),
+                age = c(25, 30, 35),
+                score = c(85, 92, 78)
+            )
+            
+            print(df)
+            
+            # Summary statistics
+            print(summary(df$score))
+            
+            # Try loading tidyverse (uncomment if installed)
+            # library(tidyverse)
+            # df %>% filter(age > 25) %>% arrange(desc(score))
             """
 
         case "d":
@@ -1656,6 +1690,183 @@ fn main() {
                 return 0;
             }
             """
+            
+        case "objective-c++", "objcpp":
+            code = """
+            // Objective-C++ Playground
+            #import <Foundation/Foundation.h>
+            #include <vector>
+            #include <iostream>
+
+            int main(int argc, const char * argv[]) {
+                @autoreleasepool {
+                    NSLog(@"Hello, Objective-C++!");
+                    
+                    // Mix C++ STL with Objective-C
+                    std::vector<int> numbers = {1, 2, 3, 4, 5};
+                    int sum = 0;
+                    for (int n : numbers) {
+                        sum += n;
+                    }
+                    std::cout << "C++ Sum: " << sum << std::endl;
+                    
+                    // Objective-C Foundation
+                    NSArray *nsNumbers = @[@10, @20, @30];
+                    NSLog(@"ObjC Array: %@", nsNumbers);
+                }
+                return 0;
+            }
+            """
+            
+        case "ruby", "rb":
+            code = #"""
+            # Ruby Playground
+            puts "Hello, Ruby!"
+            
+            # Array operations
+            numbers = [1, 2, 3, 4, 5]
+            squares = numbers.map { |n| n ** 2 }
+            puts "Squares: #{squares}"
+            """#
+            
+        case "c":
+            code = """
+            // C Playground
+            #include <stdio.h>
+
+            int main() {
+                printf("Hello, C!\\n");
+                
+                int sum = 0;
+                for (int i = 1; i <= 10; i++) {
+                    sum += i;
+                }
+                printf("Sum 1-10: %d\\n", sum);
+                
+                return 0;
+            }
+            """
+            
+        case "java":
+            code = """
+            // Java Playground
+            public class Main {
+                public static void main(String[] args) {
+                    System.out.println("Hello, Java!");
+                    
+                    int[] numbers = {1, 2, 3, 4, 5};
+                    int sum = 0;
+                    for (int n : numbers) {
+                        sum += n;
+                    }
+                    System.out.println("Sum: " + sum);
+                }
+            }
+            """
+            
+        case "kotlin", "kt":
+            code = """
+            // Kotlin Script Playground
+            println("Hello, Kotlin!")
+            
+            val numbers = listOf(1, 2, 3, 4, 5)
+            val sum = numbers.sum()
+            println("Sum: $sum")
+            
+            // Lambda
+            val squares = numbers.map { it * it }
+            println("Squares: $squares")
+            """
+            
+        case "lua":
+            code = """
+            -- Lua Playground
+            print("Hello, Lua!")
+            
+            -- Table (array)
+            local numbers = {1, 2, 3, 4, 5}
+            local sum = 0
+            for _, v in ipairs(numbers) do
+                sum = sum + v
+            end
+            print("Sum: " .. sum)
+            """
+            
+        case "perl", "pl":
+            code = """
+            #!/usr/bin/perl
+            # Perl Playground
+            use strict;
+            use warnings;
+            
+            print "Hello, Perl!\\n";
+            
+            my @numbers = (1, 2, 3, 4, 5);
+            my $sum = 0;
+            $sum += $_ for @numbers;
+            print "Sum: $sum\\n";
+            """
+            
+        case "php":
+            code = """
+            <?php
+            // PHP Playground
+            echo "Hello, PHP!\\n";
+            
+            $numbers = [1, 2, 3, 4, 5];
+            $sum = array_sum($numbers);
+            echo "Sum: $sum\\n";
+            
+            $squares = array_map(fn($n) => $n * $n, $numbers);
+            echo "Squares: " . implode(", ", $squares) . "\\n";
+            ?>
+            """
+            
+        case "shell", "bash", "sh":
+            code = """
+            #!/bin/bash
+            # Shell Playground
+            echo "Hello, Bash!"
+            
+            # Variables
+            NAME="MicroCode"
+            echo "Welcome to $NAME"
+            
+            # Loop
+            for i in {1..5}; do
+                echo "Number: $i"
+            done
+            """
+            
+        case "sql":
+            code = """
+            -- SQL Playground (SQLite)
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                age INTEGER
+            );
+            
+            INSERT INTO users (name, age) VALUES ('Alice', 25);
+            INSERT INTO users (name, age) VALUES ('Bob', 30);
+            INSERT INTO users (name, age) VALUES ('Charlie', 35);
+            
+            SELECT * FROM users;
+            SELECT name, age FROM users WHERE age > 25;
+            """
+            
+        case "ardium", "ar":
+            code = """
+            // Ardium Playground
+            fn main() {
+                print("Hello, Ardium!")
+                
+                let x = 10
+                let y = 20
+                print("Sum:", x + y)
+            }
+            """
+            
         default:
             code = "print('Hello, World!')"
         }

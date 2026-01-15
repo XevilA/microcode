@@ -62,6 +62,7 @@ pub async fn execute_stream(
         "go" => "go",
         "d" | "dlang" => "d",
         "typescript" | "ts" => "ts",
+        "r" => "R",
         "objective-c" | "objc" => "m",
         "objective-cpp" | "objcpp" => "mm",
         "ardium" | "ar" => "ar",
@@ -109,6 +110,10 @@ pub async fn execute_stream(
         "rust" => ("cargo", vec!["script".to_string(), temp_file.clone()]), 
         "go" => ("go", vec!["run".to_string(), temp_file.clone()]),
         "d" | "dlang" => ("rdmd", vec![temp_file.clone()]),
+        "r" => {
+            // Special handling for R with proper library paths
+            return streaming_execute_r(&temp_file).await;
+        }
         "objective-c" | "objc" | "objective-cpp" | "objcpp" => {
             // Special handling for compilation-based streaming
             return streaming_execute_compilation_lang(lang_id.as_str(), &temp_file).await;
@@ -156,13 +161,29 @@ pub async fn execute(code: &str, language: &str, node_path: Option<String>) -> R
         "rust" => execute_rust(code).await?,
         "go" => execute_go(code).await?,
         "d" | "dlang" => execute_d(code).await?,
-        "ruby" => execute_ruby(code).await?,
+        "ruby" | "rb" => execute_ruby(code).await?,
         "swift" => execute_swift(code).await?,
         "ardium" | "ar" => execute_ardium(code).await?,
+        "r" => execute_r(code).await?,
 
-        "c++" | "cpp" | "c" => execute_cpp(code).await?,
+        "c" => execute_c(code).await?,
+        "c++" | "cpp" => execute_cpp(code).await?,
         "objective-c" | "objc" => execute_objc(code).await?,
         "objective-cpp" | "objcpp" => execute_objcpp(code).await?,
+        
+        // JVM Languages
+        "java" => execute_java(code).await?,
+        "kotlin" | "kt" => execute_kotlin(code).await?,
+        
+        // Scripting Languages
+        "lua" => execute_lua(code).await?,
+        "perl" | "pl" => execute_perl(code).await?,
+        "php" => execute_php(code).await?,
+        
+        // Shell/SQL
+        "shell" | "bash" | "sh" => execute_shell(code).await?,
+        "sql" => execute_sql(code).await?,
+        
         _ => {
             return Err(AppError::ExecutionError(format!(
                 "Unsupported language: {}",
@@ -462,16 +483,31 @@ async fn execute_rust(code: &str) -> Result<ExecutionResult> {
         .await
         .map_err(|e| AppError::ExecutionError(format!("Failed to write main.rs: {}", e)))?;
 
-    // Compile
-    let mut compile_child = Command::new(find_executable("rustc"))
+    // Find rustc - check common paths
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/Users".to_string());
+    let rustc_paths = [
+        format!("{}/.cargo/bin/rustc", home),
+        "/opt/homebrew/bin/rustc".to_string(),
+        "/usr/local/bin/rustc".to_string(),
+        "rustc".to_string(), // fallback to PATH
+    ];
+    
+    let rustc = rustc_paths.iter()
+        .find(|p| std::path::Path::new(p).exists() || *p == "rustc")
+        .map(|s| s.as_str())
+        .unwrap_or("rustc");
+
+    // Compile with PATH including cargo bin
+    let mut compile_child = Command::new(rustc)
         .arg(&main_rs)
         .arg("-o")
         .arg(temp_dir.join("program"))
         .current_dir(&temp_dir)
+        .env("PATH", format!("{}/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin", home))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| AppError::ExecutionError(format!("Failed to spawn rustc: {}", e)))?;
+        .map_err(|e| AppError::ExecutionError(format!("Failed to spawn rustc: {}. Ensure Rust is installed (rustup.rs)", e)))?;
 
     let compile_status = compile_child
         .wait()
@@ -729,6 +765,133 @@ async fn execute_ardium(code: &str) -> Result<ExecutionResult> {
         stderr: stderr_output,
         exit_code: status.code().unwrap_or(-1),
     })
+}
+
+/// Find Rscript binary
+fn find_rscript() -> String {
+    let r_paths = [
+        "/opt/homebrew/bin/Rscript",
+        "/usr/local/bin/Rscript",
+        "/usr/bin/Rscript",
+        "/Library/Frameworks/R.framework/Resources/bin/Rscript",
+    ];
+    
+    for path in &r_paths {
+        if std::path::Path::new(path).exists() {
+            return path.to_string();
+        }
+    }
+    
+    // Fallback to PATH
+    "Rscript".to_string()
+}
+
+/// Get R library paths for Tidyverse and other packages
+fn get_r_lib_paths() -> Vec<String> {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/Users".to_string());
+    vec![
+        format!("{}/Library/R/arm64/4.4/library", home), // macOS ARM
+        format!("{}/Library/R/x86_64/4.4/library", home), // macOS Intel
+        format!("{}/R/lib", home),
+        "/opt/homebrew/lib/R/4.4/site-library".to_string(),
+        "/usr/local/lib/R/site-library".to_string(),
+        "/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library".to_string(),
+        "/Library/Frameworks/R.framework/Resources/library".to_string(),
+    ]
+}
+
+async fn execute_r(code: &str) -> Result<ExecutionResult> {
+    let temp_file = create_temp_file("R", code).await?;
+    
+    let rscript = find_rscript();
+    let lib_paths = get_r_lib_paths();
+    let r_libs = lib_paths.join(":");
+    
+    let mut child = Command::new(&rscript)
+        .arg("--vanilla") // Clean session
+        .arg(&temp_file)
+        .env("R_LIBS_USER", &r_libs)
+        .env("R_LIBS", &r_libs)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| AppError::ExecutionError(format!("Failed to spawn Rscript: {}. Ensure R is installed.", e)))?;
+
+    let stdout = child.stdout.take().unwrap();
+    let stderr = child.stderr.take().unwrap();
+
+    let stdout_reader = BufReader::new(stdout);
+    let stderr_reader = BufReader::new(stderr);
+
+    let mut stdout_lines = stdout_reader.lines();
+    let mut stderr_lines = stderr_reader.lines();
+
+    let mut stdout_output = String::new();
+    let mut stderr_output = String::new();
+
+    while let Ok(Some(line)) = stdout_lines.next_line().await {
+        stdout_output.push_str(&line);
+        stdout_output.push('\n');
+    }
+
+    while let Ok(Some(line)) = stderr_lines.next_line().await {
+        stderr_output.push_str(&line);
+        stderr_output.push('\n');
+    }
+
+    let timeout_duration = std::time::Duration::from_secs(60); // R can be slow with Tidyverse
+    let status_result = tokio::time::timeout(timeout_duration, child.wait()).await;
+
+    let status = match status_result {
+        Ok(Ok(s)) => s,
+        Ok(Err(e)) => return Err(AppError::ExecutionError(format!("Failed to wait for Rscript: {}", e))),
+        Err(_) => {
+            let _ = child.kill().await;
+            return Err(AppError::ExecutionError("R execution timed out (60s limit)".to_string()));
+        }
+    };
+
+    cleanup_temp_file(&temp_file).await;
+
+    Ok(ExecutionResult {
+        stdout: stdout_output,
+        stderr: stderr_output,
+        exit_code: status.code().unwrap_or(-1),
+    })
+}
+
+/// Streaming execution for R (for Cell Mode)
+async fn streaming_execute_r(temp_file: &str) -> Result<Pin<Box<dyn Stream<Item = std::result::Result<StreamEvent, AppError>> + Send>>> {
+    let rscript = find_rscript();
+    let lib_paths = get_r_lib_paths();
+    let r_libs = lib_paths.join(":");
+    
+    let mut child = Command::new(&rscript)
+        .arg("--vanilla")
+        .arg(temp_file)
+        .env("R_LIBS_USER", &r_libs)
+        .env("R_LIBS", &r_libs)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+        .map_err(|e| AppError::ExecutionError(format!("Failed to spawn Rscript: {}", e)))?;
+
+    let stdout = child.stdout.take().ok_or_else(|| AppError::ExecutionError("Failed to capture stdout".into()))?;
+    let stderr = child.stderr.take().ok_or_else(|| AppError::ExecutionError("Failed to capture stderr".into()))?;
+
+    let stdout_stream = FramedRead::new(stdout, LinesCodec::new())
+        .map(|line| line.map(StreamEvent::Output).map_err(|e| AppError::ExecutionError(e.to_string())));
+    
+    let stderr_stream = FramedRead::new(stderr, LinesCodec::new())
+        .map(|line| line.map(StreamEvent::Error).map_err(|e| AppError::ExecutionError(e.to_string())));
+
+    let merged_stream = futures::stream::select(stdout_stream, stderr_stream);
+    
+    Ok(Box::pin(ProcessStream {
+        stream: merged_stream,
+        _child: child,
+    }))
 }
 
 async fn execute_cpp(code: &str) -> Result<ExecutionResult> {
@@ -1092,6 +1255,230 @@ async fn streaming_execute_compilation_lang(
         stream: merged_stream,
         _child: child,
     }))
+}
+
+// ============================================================================
+// Additional Language Executors
+// ============================================================================
+
+async fn execute_c(code: &str) -> Result<ExecutionResult> {
+    let temp_file = create_temp_file("c", code).await?;
+    let temp_path = std::path::Path::new(&temp_file);
+    let output_bin = temp_path.with_extension("bin");
+
+    let mut compile_child = Command::new(find_executable("clang"))
+        .arg(&temp_file)
+        .arg("-o")
+        .arg(&output_bin)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| AppError::ExecutionError(format!("Failed to spawn clang: {}", e)))?;
+
+    let compile_status = compile_child.wait().await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to compile C: {}", e)))?;
+
+    if !compile_status.success() {
+        let stderr = compile_child.stderr.take().unwrap();
+        let stderr_reader = BufReader::new(stderr);
+        let mut stderr_lines = stderr_reader.lines();
+        let mut stderr_output = String::new();
+        while let Ok(Some(line)) = stderr_lines.next_line().await {
+            stderr_output.push_str(&line);
+            stderr_output.push('\n');
+        }
+        cleanup_temp_file(&temp_file).await;
+        return Err(AppError::CompilationError(stderr_output));
+    }
+
+    run_compiled_binary(&output_bin.to_string_lossy(), &temp_file).await
+}
+
+async fn execute_java(code: &str) -> Result<ExecutionResult> {
+    // Extract class name from code or use default
+    let class_name = if code.contains("public class ") {
+        code.split("public class ")
+            .nth(1)
+            .and_then(|s| s.split_whitespace().next())
+            .unwrap_or("Main")
+    } else {
+        "Main"
+    };
+    
+    let temp_dir = std::env::temp_dir().join(format!("codetunner_java_{}", uuid::Uuid::new_v4()));
+    tokio::fs::create_dir_all(&temp_dir).await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to create temp dir: {}", e)))?;
+
+    let java_file = temp_dir.join(format!("{}.java", class_name));
+    tokio::fs::write(&java_file, code).await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to write java file: {}", e)))?;
+
+    // Compile
+    let compile_output = Command::new("javac")
+        .arg(&java_file)
+        .current_dir(&temp_dir)
+        .output()
+        .await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to run javac: {}", e)))?;
+
+    if !compile_output.status.success() {
+        let stderr = String::from_utf8_lossy(&compile_output.stderr);
+        cleanup_temp_dir(&temp_dir).await;
+        return Err(AppError::CompilationError(stderr.to_string()));
+    }
+
+    // Run
+    let run_output = Command::new("java")
+        .arg(class_name)
+        .current_dir(&temp_dir)
+        .output()
+        .await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to run java: {}", e)))?;
+
+    cleanup_temp_dir(&temp_dir).await;
+
+    Ok(ExecutionResult {
+        stdout: String::from_utf8_lossy(&run_output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&run_output.stderr).to_string(),
+        exit_code: run_output.status.code().unwrap_or(-1),
+    })
+}
+
+async fn execute_kotlin(code: &str) -> Result<ExecutionResult> {
+    let temp_file = create_temp_file("kts", code).await?; // Kotlin script
+
+    let output = Command::new("kotlinc")
+        .arg("-script")
+        .arg(&temp_file)
+        .output()
+        .await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to run kotlin: {}", e)))?;
+
+    cleanup_temp_file(&temp_file).await;
+
+    Ok(ExecutionResult {
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        exit_code: output.status.code().unwrap_or(-1),
+    })
+}
+
+async fn execute_lua(code: &str) -> Result<ExecutionResult> {
+    let temp_file = create_temp_file("lua", code).await?;
+
+    let output = Command::new(find_executable("lua"))
+        .arg(&temp_file)
+        .output()
+        .await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to run lua: {}", e)))?;
+
+    cleanup_temp_file(&temp_file).await;
+
+    Ok(ExecutionResult {
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        exit_code: output.status.code().unwrap_or(-1),
+    })
+}
+
+async fn execute_perl(code: &str) -> Result<ExecutionResult> {
+    let temp_file = create_temp_file("pl", code).await?;
+
+    let output = Command::new(find_executable("perl"))
+        .arg(&temp_file)
+        .output()
+        .await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to run perl: {}", e)))?;
+
+    cleanup_temp_file(&temp_file).await;
+
+    Ok(ExecutionResult {
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        exit_code: output.status.code().unwrap_or(-1),
+    })
+}
+
+async fn execute_php(code: &str) -> Result<ExecutionResult> {
+    let temp_file = create_temp_file("php", code).await?;
+
+    let output = Command::new(find_executable("php"))
+        .arg(&temp_file)
+        .output()
+        .await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to run php: {}", e)))?;
+
+    cleanup_temp_file(&temp_file).await;
+
+    Ok(ExecutionResult {
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        exit_code: output.status.code().unwrap_or(-1),
+    })
+}
+
+async fn execute_shell(code: &str) -> Result<ExecutionResult> {
+    let temp_file = create_temp_file("sh", code).await?;
+
+    // Make executable
+    let _ = Command::new("chmod")
+        .arg("+x")
+        .arg(&temp_file)
+        .output()
+        .await;
+
+    let output = Command::new("/bin/bash")
+        .arg(&temp_file)
+        .output()
+        .await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to run bash: {}", e)))?;
+
+    cleanup_temp_file(&temp_file).await;
+
+    Ok(ExecutionResult {
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        exit_code: output.status.code().unwrap_or(-1),
+    })
+}
+
+async fn execute_sql(code: &str) -> Result<ExecutionResult> {
+    // Use SQLite for SQL execution
+    let temp_file = create_temp_file("sql", code).await?;
+
+    let output = Command::new(find_executable("sqlite3"))
+        .arg(":memory:")
+        .arg("-init")
+        .arg(&temp_file)
+        .arg(".quit")
+        .output()
+        .await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to run sqlite3: {}", e)))?;
+
+    cleanup_temp_file(&temp_file).await;
+
+    Ok(ExecutionResult {
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        exit_code: output.status.code().unwrap_or(-1),
+    })
+}
+
+/// Helper to run a compiled binary and get result
+async fn run_compiled_binary(bin_path: &str, source_file: &str) -> Result<ExecutionResult> {
+    let output = Command::new(bin_path)
+        .output()
+        .await
+        .map_err(|e| AppError::ExecutionError(format!("Failed to execute: {}", e)))?;
+
+    cleanup_temp_file(source_file).await;
+    let _ = tokio::fs::remove_file(bin_path).await;
+
+    Ok(ExecutionResult {
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+        exit_code: output.status.code().unwrap_or(-1),
+    })
 }
 
 #[cfg(test)]
