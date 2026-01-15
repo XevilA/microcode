@@ -158,7 +158,12 @@ class ExtensionManager: ObservableObject {
         if enabledExtensions.contains(id) {
             enabledExtensions.remove(id)
         } else {
-            enabledExtensions.insert(id)
+            // Check permissions before enabling
+            if checkPermissions(for: id) {
+                enabledExtensions.insert(id)
+            } else {
+                requestPermissions(for: id)
+            }
         }
         
         // Update installed extensions
@@ -240,6 +245,31 @@ class ExtensionManager: ObservableObject {
         
         // Apply colors (would integrate with app's theme system)
         print("Applied theme: \(ext.manifest.name)")
+    }
+    
+    // MARK: - Permissions Helper
+    private func checkPermissions(for id: String) -> Bool {
+        // Mock permission check
+        return UserDefaults.standard.bool(forKey: "ext_perm_\(id)")
+    }
+    
+    private func requestPermissions(for id: String) {
+        guard let ext = installedExtensions.first(where: { $0.id == id }) else { return }
+        
+        // In a real app, this would show a dialog. For now, we auto-grant but log.
+        print("🔐 Requesting permissions for extension: \(ext.manifest.name)")
+        print("Permissions required: fileSystem, network")
+        
+        // Auto-grant for demo purposes
+        UserDefaults.standard.set(true, forKey: "ext_perm_\(id)")
+        enabledExtensions.insert(id)
+        
+        // Update UI
+        for i in installedExtensions.indices {
+            if installedExtensions[i].id == id {
+                installedExtensions[i].isEnabled = true
+            }
+        }
     }
     
     // MARK: - Get Extensions by Type

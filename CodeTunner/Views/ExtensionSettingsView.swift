@@ -3,6 +3,9 @@
 //  CodeTunner
 //
 //  Extension management settings view
+//  Copyright © 2025 SPU AI CLUB. All rights reserved.
+//
+//  Tirawat Nantamas | Dotmini Software | SPU AI CLUB
 //
 
 import SwiftUI

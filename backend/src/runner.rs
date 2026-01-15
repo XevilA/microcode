@@ -1,6 +1,8 @@
 //! Code runner module
 //!
 //! Provides code execution capabilities for multiple languages
+//!
+//! Tirawat Nantamas | Dotmini Software | SPU AI CLUB
 
 use crate::error::{AppError, Result};
 use crate::models::ExecutionOutput;

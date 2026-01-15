@@ -2913,6 +2913,7 @@ struct SettingsView: View {
                 SettingsTabButton(title: "Editor", icon: "text.cursor", isSelected: selectedTab == 1) { selectedTab = 1 }
                 SettingsTabButton(title: "AI", icon: "brain", isSelected: selectedTab == 2) { selectedTab = 2 }
                 SettingsTabButton(title: "Tools", icon: "wrench.and.screwdriver", isSelected: selectedTab == 3) { selectedTab = 3 }
+                SettingsTabButton(title: "Extensions", icon: "puzzlepiece.extension", isSelected: selectedTab == 5) { selectedTab = 5 }
                 SettingsTabButton(title: "About", icon: "info.circle", isSelected: selectedTab == 4) { selectedTab = 4 }
                 Spacer()
             }
@@ -2933,6 +2934,8 @@ struct SettingsView: View {
                         aiSettingsContent
                     } else if selectedTab == 3 {
                         toolsSettingsContent
+                    } else if selectedTab == 5 {
+                        ExtensionSettingsView()
                     } else {
                         aboutContent
                     }
