@@ -51,14 +51,36 @@ namespace MicroLexer {
         
         Engine(const std::string& lang) {
             if (lang == "swift") {
-                keywords = {"if", "else", "return", "import", "extension", "guard", "switch", "case", "try", "catch"};
-                declarationKeywords = {"func", "var", "let", "class", "struct", "enum", "protocol", "public", "private"};
+                keywords = {"if", "else", "return", "import", "extension", "guard", "switch", "case", "try", "catch", "throw", "throws", "async", "await", "do", "repeat", "while", "break", "continue", "defer", "init", "deinit", "subscript", "static", "class", "get", "set", "willSet", "didSet"};
+                declarationKeywords = {"func", "var", "let", "class", "struct", "enum", "protocol", "public", "private", "fileprivate", "internal", "open", "typealias", "associatedtype", "actor", "macro"};
             } else if (lang == "python") {
-                keywords = {"return", "if", "else", "elif", "for", "while", "import", "from", "as", "try", "except", "pass", "None", "True", "False"};
+                keywords = {"return", "if", "else", "elif", "for", "while", "import", "from", "as", "try", "except", "pass", "None", "True", "False", "lambda", "with", "raise", "finally", "assert", "del", "global", "nonlocal", "yield", "break", "continue"};
                 declarationKeywords = {"def", "class"};
+            } else if (lang == "r") {
+                keywords = {"if", "else", "for", "while", "repeat", "break", "next", "return", "in", "function", "TRUE", "FALSE", "NULL", "NA", "NaN", "Inf", "library", "require", "source", "print", "cat"};
+                declarationKeywords = {"function", "library", "require", "data.frame", "matrix", "list", "vector", "factor", "tibble"};
+            } else if (lang == "rust") {
+                keywords = {"if", "else", "return", "match", "loop", "while", "for", "in", "break", "continue", "unsafe", "async", "await", "move", "ref", "mut", "static", "const", "trait", "impl", "type", "crate", "mod", "pub", "use", "extern", "self", "super", "where", "dyn"};
+                declarationKeywords = {"fn", "let", "struct", "enum", "union", "const", "static", "type"};
+            } else if (lang == "go" || lang == "golang") {
+                keywords = {"break", "case", "chan", "const", "continue", "default", "defer", "else", "fallthrough", "for", "func", "go", "goto", "if", "import", "interface", "map", "package", "range", "return", "select", "struct", "switch", "type", "var"};
+                declarationKeywords = {"func", "var", "const", "type", "package", "import"};
+            } else if (lang == "javascript" || lang == "js" || lang == "typescript" || lang == "ts" || lang == "jsx" || lang == "tsx") {
+                keywords = {"if", "else", "return", "for", "while", "do", "switch", "case", "default", "break", "continue", "try", "catch", "finally", "throw", "new", "this", "super", "import", "export", "from", "as", "await", "async", "yield", "void", "typeof", "instanceof", "delete", "in", "of", "null", "undefined", "true", "false", "NaN", "Infinity"};
+                declarationKeywords = {"function", "var", "let", "const", "class", "enum", "interface", "type", "namespace", "module"};
+            } else if (lang == "java" || lang == "kotlin" || lang == "kt") {
+                 keywords = {"if", "else", "return", "for", "while", "do", "switch", "case", "default", "break", "continue", "try", "catch", "finally", "throw", "new", "this", "super", "import", "package", "null", "true", "false", "synchronized", "volatile", "transient", "native", "strictfp"};
+                 declarationKeywords = {"class", "interface", "enum", "record", "extends", "implements", "public", "private", "protected", "static", "final", "abstract", "void", "int", "boolean", "char", "byte", "short", "long", "float", "double", "fun", "val", "var"};
+            } else if (lang == "sql") {
+                keywords = {"SELECT", "FROM", "WHERE", "INSERT", "INTO", "UPDATE", "DELETE", "CREATE", "DROP", "ALTER", "TABLE", "INDEX", "VIEW", "JOIN", "INNER", "LEFT", "RIGHT", "OUTER", "ON", "GROUP", "BY", "ORDER", "HAVING", "LIMIT", "OFFSET", "UNION", "ALL", "DISTINCT", "AS", "AND", "OR", "NOT", "NULL", "IS", "IN", "BETWEEN", "LIKE", "EXISTS", "CASE", "WHEN", "THEN", "ELSE", "END"};
+                declarationKeywords = {"INT", "VARCHAR", "TEXT", "DATE", "DATETIME", "TIMESTAMP", "BOOLEAN", "FLOAT", "DECIMAL", "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "DEFAULT", "UNIQUE"};
+            } else if (lang == "ruby" || lang == "rb") {
+                 keywords = {"if", "else", "elsif", "unless", "return", "while", "until", "for", "in", "break", "next", "redo", "retry", "begin", "rescue", "ensure", "end", "case", "when", "then", "def", "class", "module", "self", "super", "yield", "alias", "and", "or", "not", "true", "false", "nil"};
+                 declarationKeywords = {"def", "class", "module", "attr_reader", "attr_writer", "attr_accessor"};
             } else {
-                keywords = {"return", "if", "else", "for", "while", "using", "include"};
-                declarationKeywords = {"int", "float", "double", "char", "void", "class", "struct", "public", "private", "protected", "namespace"};
+                // C/C++ Default
+                keywords = {"return", "if", "else", "for", "while", "do", "switch", "case", "default", "break", "continue", "goto", "try", "catch", "throw", "new", "delete", "using", "namespace", "include", "import", "define", "ifdef", "ifndef", "endif", "pragma", "nullptr", "true", "false"};
+                declarationKeywords = {"int", "float", "double", "char", "void", "bool", "long", "short", "unsigned", "signed", "class", "struct", "union", "enum", "public", "private", "protected", "virtual", "friend", "static", "const", "mutable", "volatile", "register", "auto", "extern", "template", "typename", "typedef", "operator"};
             }
         }
         
@@ -92,6 +114,16 @@ namespace MicroLexer {
                 
                 // Comments (Line) //
                 if (c == '/' && i + 1 < len && source[i+1] == '/') {
+                    size_t start = i;
+                    while (i < len && source[i] != '\n') {
+                        i++;
+                    }
+                    tokens.push_back({AuthenticTokenTypeComment, start, i - start});
+                    continue;
+                }
+                
+                // Comments (Line) # (Python, R, Ruby, Shell)
+                if (c == '#') {
                     size_t start = i;
                     while (i < len && source[i] != '\n') {
                         i++;
