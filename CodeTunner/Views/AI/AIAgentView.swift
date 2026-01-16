@@ -228,12 +228,14 @@ class AgentService: ObservableObject {
     @Published var tools: [ToolDefinitionModel] = []
     @Published var pendingChanges: [PendingChangeModel] = []
     @Published var editorContext: EditorContextModel?
+    @Published var ragStatus: RagIndexStatusModel?
     
     // BMAD Agent State
     @Published var selectedAgent: BMadAgentRole = .developer
     @Published var selectedPhase: BMadPhase = .implementation
     
     private let baseURL = "http://127.0.0.1:3000"
+    private(set) var workspacePath: String?
     
     func createSession(workspacePath: String) async {
         isLoading = true
@@ -253,8 +255,10 @@ class AgentService: ObservableObject {
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let sid = json["session_id"] as? String {
                 sessionId = sid
+                self.workspacePath = workspacePath
                 await fetchContext()
                 await fetchTools()
+                await startIndexing()
             }
         } catch {
             print("Failed to create session: \(error)")
@@ -284,6 +288,36 @@ class AgentService: ObservableObject {
             }
         } catch {
             print("Failed to fetch tools: \(error)")
+        }
+    }
+
+    func fetchIndexStatus() async {
+        guard let url = URL(string: "\(baseURL)/api/agent/index/status") else { return }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            ragStatus = try? JSONDecoder().decode(RagIndexStatusModel.self, from: data)
+        } catch {
+            print("Failed to fetch index status: \(error)")
+        }
+    }
+
+    func startIndexing() async {
+        guard let workspacePath else { return }
+        guard let url = URL(string: "\(baseURL)/api/agent/index/start") else { return }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = ["workspace_path": workspacePath]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        do {
+            let (_, _) = try await URLSession.shared.data(for: request)
+            await fetchIndexStatus()
+        } catch {
+            print("Failed to start indexing: \(error)")
         }
     }
     
@@ -605,6 +639,14 @@ struct ToolDefinitionModel: Codable, Identifiable {
     let description: String
 }
 
+struct RagIndexStatusModel: Codable {
+    let is_indexing: Bool
+    let is_ready: Bool
+    let last_indexed_at: String?
+    let chunk_count: Int
+    let error: String?
+}
+
 // MARK: - AI Agent View
 
 struct AIAgentView: View {
@@ -674,6 +716,7 @@ struct AIAgentView: View {
             if agent.sessionId == nil && !workspacePath.isEmpty {
                 Task { await agent.createSession(workspacePath: workspacePath) }
             }
+            Task { await agent.fetchIndexStatus() }
         }
     }
     
@@ -898,6 +941,10 @@ struct AIAgentView: View {
             
             Divider()
             
+            vectorDatabaseView
+            
+            Divider()
+            
             // Available Tools
             Text("Tools")
                 .font(.headline)
@@ -924,6 +971,67 @@ struct AIAgentView: View {
             }
         }
         .background(Color(NSColor.windowBackgroundColor))
+    }
+
+    private var vectorDatabaseView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Vector DB")
+                .font(.headline)
+                .padding(.horizontal)
+                .padding(.top)
+            
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(ragStatusColor)
+                    .frame(width: 8, height: 8)
+                Text(ragStatusText)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal)
+            
+            if let status = agent.ragStatus {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let lastIndexed = formattedIndexTime(status.last_indexed_at) {
+                        Text("Last indexed: \(lastIndexed)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    Text("Chunks: \(status.chunk_count)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    if let error = status.error {
+                        Text(error)
+                            .font(.caption2)
+                            .foregroundColor(.red)
+                            .lineLimit(2)
+                    }
+                }
+                .padding(.horizontal)
+            } else {
+                Text("No index status yet.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+            }
+            
+            HStack(spacing: 8) {
+                Button(action: { Task { await agent.startIndexing() } }) {
+                    Text("Index Now")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                
+                Button(action: { Task { await agent.fetchIndexStatus() } }) {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+            .padding(.horizontal)
+            .padding(.bottom)
+        }
     }
     
     private var settingsPopover: some View {
@@ -972,8 +1080,49 @@ struct AIAgentView: View {
         case "run_command": return "terminal"
         case "git_status": return "arrow.triangle.branch"
         case "git_commit": return "checkmark.seal"
+        case "search_rag": return "database"
         default: return "wrench"
         }
+    }
+
+    private var ragStatusColor: Color {
+        if let status = agent.ragStatus {
+            if status.error != nil {
+                return .red
+            }
+            if status.is_indexing {
+                return .orange
+            }
+            if status.is_ready {
+                return .green
+            }
+        }
+        return .gray
+    }
+
+    private var ragStatusText: String {
+        if let status = agent.ragStatus {
+            if status.is_indexing {
+                return "Indexing..."
+            }
+            if status.is_ready {
+                return "Ready"
+            }
+            if status.error != nil {
+                return "Error"
+            }
+        }
+        return "Idle"
+    }
+
+    private func formattedIndexTime(_ timestamp: String?) -> String? {
+        guard let timestamp else { return nil }
+        let formatter = ISO8601DateFormatter()
+        guard let date = formatter.date(from: timestamp) else { return timestamp }
+        let displayFormatter = DateFormatter()
+        displayFormatter.dateStyle = .medium
+        displayFormatter.timeStyle = .short
+        return displayFormatter.string(from: date)
     }
 }
 

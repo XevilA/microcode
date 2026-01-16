@@ -210,6 +210,7 @@ async fn main() -> Result<()> {
         .route("/api/agent/enhanced-chat", post(handlers::agent_enhanced_chat))
         .route("/api/agent/enhanced-chat/stream", post(handlers::agent_enhanced_chat_stream))
         .route("/api/agent/index/start", post(handlers::agent_index_start))
+        .route("/api/agent/index/status", get(handlers::agent_index_status))
         .route("/api/agent/pending-changes/:session_id", get(handlers::agent_get_pending_changes))
         .route("/api/agent/apply-change/:change_id", post(handlers::agent_apply_change))
         .route("/api/agent/reject-change/:change_id", post(handlers::agent_reject_change))
@@ -747,19 +748,33 @@ mod handlers {
     ) -> Result<Json<serde_json::Value>> {
         let st = state.read().await;
         let rag_engine_ptr = st.rag_engine.clone();
+        let rag_status_ptr = st.rag_status.clone();
         let path = std::path::PathBuf::from(req.workspace_path);
+
+        {
+            let mut status = rag_status_ptr.write().await;
+            status.is_indexing = true;
+            status.is_ready = false;
+            status.error = None;
+        }
         
         tokio::spawn(async move {
             info!("Starting background indexing for {:?}", path);
             let mut indexer = crate::indexer::Indexer::new();
             
             // 1. Get all files and symbols
-            if let Ok((_files, symbols)) = crate::agent::index_files(&path, 5, &mut indexer).await {
+            match crate::agent::index_files(&path, 5, &mut indexer).await {
+                Ok((_files, symbols)) => {
                 // 2. Initialize RAG engine if not already
                 let mut guard: tokio::sync::MutexGuard<Option<crate::rag::RagEngine>> = rag_engine_ptr.lock().await;
                 if guard.is_none() {
                     if let Ok(engine) = crate::rag::RagEngine::new() {
                         *guard = Some(engine);
+                    } else {
+                        let mut status = rag_status_ptr.write().await;
+                        status.is_indexing = false;
+                        status.error = Some("Failed to initialize vector engine".to_string());
+                        return;
                     }
                 }
                 
@@ -779,13 +794,48 @@ mod handlers {
                     }
                     
                     let engine_ref: &mut crate::rag::RagEngine = guard.as_mut().unwrap();
-                    let _ = engine_ref.build_index(chunks);
+                    let chunk_count = chunks.len();
+                    if let Err(err) = engine_ref.build_index(chunks) {
+                        let mut status = rag_status_ptr.write().await;
+                        status.is_indexing = false;
+                        status.error = Some(err.to_string());
+                        return;
+                    }
+                    
+                    {
+                        let mut status = rag_status_ptr.write().await;
+                        status.is_indexing = false;
+                        status.is_ready = true;
+                        status.chunk_count = chunk_count;
+                        status.last_indexed_at = Some(chrono::Utc::now());
+                        status.error = None;
+                    }
                     info!("Indexing complete. RAG engine READY.");
+                }
+                }
+                Err(err) => {
+                    let mut status = rag_status_ptr.write().await;
+                    status.is_indexing = false;
+                    status.error = Some(err.to_string());
                 }
             }
         });
 
         Ok(Json(serde_json::json!({ "success": true, "message": "Indexing started in background" })))
+    }
+
+    pub async fn agent_index_status(
+        State(state): State<Arc<RwLock<AppState>>>,
+    ) -> Result<Json<serde_json::Value>> {
+        let st = state.read().await;
+        let status = st.rag_status.read().await;
+        Ok(Json(serde_json::json!({
+            "is_indexing": status.is_indexing,
+            "is_ready": status.is_ready,
+            "last_indexed_at": status.last_indexed_at.as_ref().map(|dt| dt.to_rfc3339()),
+            "chunk_count": status.chunk_count,
+            "error": status.error,
+        })))
     }
 
     pub async fn agent_enhanced_chat(

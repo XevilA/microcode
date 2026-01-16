@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+use chrono::{DateTime, Utc};
 
 /// Global application state
 #[derive(Debug, Clone)]
@@ -32,10 +33,34 @@ pub struct AppState {
     
     /// AI Agent RAG Engine
     pub rag_engine: Arc<tokio::sync::Mutex<Option<crate::rag::RagEngine>>>,
+
+    /// AI Agent RAG Index Status
+    pub rag_status: Arc<RwLock<RagIndexStatus>>,
     
     /// DataFrames Manager
     pub data_frames: crate::data::dataframe::DataFrameManager,
     pub terminal_manager: std::sync::Arc<crate::terminal::TerminalManager>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RagIndexStatus {
+    pub is_indexing: bool,
+    pub is_ready: bool,
+    pub last_indexed_at: Option<DateTime<Utc>>,
+    pub chunk_count: usize,
+    pub error: Option<String>,
+}
+
+impl Default for RagIndexStatus {
+    fn default() -> Self {
+        Self {
+            is_indexing: false,
+            is_ready: false,
+            last_indexed_at: None,
+            chunk_count: 0,
+            error: None,
+        }
+    }
 }
 
 impl AppState {
@@ -49,6 +74,7 @@ impl AppState {
             node_settings: Arc::new(RwLock::new(crate::nodejs::NodeSettings::default())),
             fast_tier: Arc::new(tokio::sync::Mutex::new(None)),
             rag_engine: Arc::new(tokio::sync::Mutex::new(None)),
+            rag_status: Arc::new(RwLock::new(RagIndexStatus::default())),
             data_frames: crate::data::dataframe::DataFrameManager::new(),
             terminal_manager: std::sync::Arc::new(crate::terminal::TerminalManager::new()),
         }

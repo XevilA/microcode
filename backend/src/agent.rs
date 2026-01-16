@@ -1508,6 +1508,7 @@ INSTRUCTIONS:
 2. **Tool Usage**:
    - You are autonomous and can execute multiple tools in sequence.
    - **Always** verify your changes by reading the file or using search tools.
+   - Use `search_rag` for semantic codebase lookups (APIs, symbols, or architecture). If it fails, instruct the user to start indexing via the Vector DB controls.
    - If a tool fails, analyze the error and try a different approach.
    - Respond in standard text to explain your thinking, but for ACTIONS, use ONLY the tool block format: 
    ```json
