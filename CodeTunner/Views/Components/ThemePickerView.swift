@@ -11,17 +11,19 @@ struct ThemePickerView: View {
     @Binding var selectedTheme: AppTheme
     
     // Group themes by category
-    private let modernThemes: [AppTheme] = [.vscodeDefault, .xcodeDark, .githubDark, .dracula, .navy, .doki]
-    private let classicThemes: [AppTheme] = [.light, .dark, .xcodeLight, .visualStudio, .githubLight, .lightBlue]
+    private let modernThemes: [AppTheme] = [.vscodeDefault, .xcodeDark, .githubDark, .dracula, .navy, .doki, .monokaiPro, .oneDarkPro, .nord, .tokyoNight, .catppuccin]
+    private let classicThemes: [AppTheme] = [.light, .dark, .xcodeLight, .visualStudio, .githubLight, .lightBlue, .solarizedDark, .solarizedLight, .gruvboxDark]
+    private let retroThemes: [AppTheme] = [.cyberPunk, .synthWave, .powershell]
     private let festiveThemes: [AppTheme] = [.happyNewYear2026, .happyNewYear2026Light, .christmas, .christmasLight]
-    private let specialThemes: [AppTheme] = [.transparent, .wwdc, .wwdcLight, .keynote, .keynoteLight, .powershell]
+    private let specialThemes: [AppTheme] = [.transparent, .crystalClear, .obsidianGlass, .extraClear, .wwdc, .wwdcLight, .keynote, .keynoteLight, .xnuDark]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             ThemeSection(title: "Festive Season 🎆", themes: festiveThemes, selection: $selectedTheme)
             ThemeSection(title: "Modern & Sleek", themes: modernThemes, selection: $selectedTheme)
             ThemeSection(title: "Classic & Familiar", themes: classicThemes, selection: $selectedTheme)
-            ThemeSection(title: "Special Editions", themes: specialThemes, selection: $selectedTheme)
+            ThemeSection(title: "Retro & Synthwave", themes: retroThemes, selection: $selectedTheme)
+            ThemeSection(title: "Transparency & Special", themes: specialThemes, selection: $selectedTheme)
             
             HStack {
                 Text("System Default")

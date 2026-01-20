@@ -1884,7 +1884,8 @@ struct NotebookView: View {
         .padding(.vertical, 8)
         .background(Color(nsColor: .controlBackgroundColor))
         .onAppear {
-            appState.detectPythonVersions()
+            // TODO: Fix AppState access pattern
+            // appState.detectPythonVersions()
         }
     }
     
@@ -1943,7 +1944,8 @@ struct NotebookView: View {
             Divider()
             
             Button("Refresh Versions") {
-                appState.detectPythonVersions()
+                // TODO: Fix AppState access pattern
+                // appState.detectPythonVersions()
             }
         } label: {
             HStack(spacing: 4) {

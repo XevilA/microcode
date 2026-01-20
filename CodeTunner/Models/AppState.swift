@@ -86,6 +86,24 @@ enum AppTheme: String, CaseIterable {
     case transparent = "transparent"
     case extraClear = "extraClear"
     case xnuDark = "xnuDark"
+    
+    // Modern
+    case monokaiPro = "monokaiPro"
+    case oneDarkPro = "oneDarkPro"
+    case nord = "nord"
+    case tokyoNight = "tokyoNight"
+    case catppuccin = "catppuccin"
+    case cyberPunk = "cyberPunk"
+    case synthWave = "synthWave"
+    
+    // Classic
+    case solarizedDark = "solarizedDark"
+    case solarizedLight = "solarizedLight"
+    case gruvboxDark = "gruvboxDark"
+    
+    // Transparent
+    case crystalClear = "crystalClear"
+    case obsidianGlass = "obsidianGlass"
 
     var displayName: String {
         switch self {
@@ -115,12 +133,24 @@ enum AppTheme: String, CaseIterable {
         case .transparent: return "Glass Transparent 💎"
         case .extraClear: return "Extra Clear (Transparent) ✨"
         case .xnuDark: return "XNU Dark (Kernel) 🍏"
+        case .monokaiPro: return "Monokai Pro 🎨"
+        case .oneDarkPro: return "One Dark Pro ⚛️"
+        case .nord: return "Nord ❄️"
+        case .tokyoNight: return "Tokyo Night 🌃"
+        case .catppuccin: return "Catppuccin Mocha ☕️"
+        case .cyberPunk: return "Cyberpunk 2077 🤖"
+        case .synthWave: return "Synthwave '84 🌅"
+        case .solarizedDark: return "Solarized Dark ☀️"
+        case .solarizedLight: return "Solarized Light ☀️"
+        case .gruvboxDark: return "Gruvbox Dark 📦"
+        case .crystalClear: return "Crystal Clear (Glass) 💎"
+        case .obsidianGlass: return "Obsidian Glass (Dark) 🔮"
         }
     }
     
     var isDark: Bool {
         switch self {
-        case .light, .lightBlue, .xcodeLight, .christmasLight, .wwdcLight, .keynoteLight, .draculaLight, .githubLight, .happyNewYear2026Light:
+        case .light, .lightBlue, .xcodeLight, .christmasLight, .wwdcLight, .keynoteLight, .draculaLight, .githubLight, .happyNewYear2026Light, .solarizedLight, .crystalClear:
             return false
         case .system:
             return NSApp?.effectiveAppearance.name.rawValue.contains("Dark") ?? true
@@ -133,7 +163,7 @@ enum AppTheme: String, CaseIterable {
         switch self {
         case .system:
             return nil
-        case .light, .lightBlue, .xcodeLight, .christmasLight, .wwdcLight, .keynoteLight, .draculaLight, .githubLight, .happyNewYear2026Light:
+        case .light, .lightBlue, .xcodeLight, .christmasLight, .wwdcLight, .keynoteLight, .draculaLight, .githubLight, .happyNewYear2026Light, .solarizedLight, .crystalClear:
             return .light
         default:
             return .dark
@@ -168,6 +198,18 @@ enum AppTheme: String, CaseIterable {
         case .transparent: return NSColor(white: 0.0, alpha: 0.1) // Low Alpha Black for Glass effect
         case .extraClear: return NSColor(white: 0.0, alpha: 0.02) // Near fully transparent
         case .xnuDark: return NSColor(red: 0.071, green: 0.071, blue: 0.071, alpha: 1.0) // #121212
+        case .monokaiPro: return NSColor(red: 0.173, green: 0.169, blue: 0.196, alpha: 1.0) // #2D2A32
+        case .oneDarkPro: return NSColor(red: 0.157, green: 0.165, blue: 0.184, alpha: 1.0) // #282C34
+        case .nord: return NSColor(red: 0.180, green: 0.204, blue: 0.251, alpha: 1.0) // #2E3440
+        case .tokyoNight: return NSColor(red: 0.102, green: 0.106, blue: 0.169, alpha: 1.0) // #1A1B26
+        case .catppuccin: return NSColor(red: 0.118, green: 0.118, blue: 0.180, alpha: 1.0) // #1E1E2E
+        case .cyberPunk: return NSColor(red: 0.012, green: 0.008, blue: 0.094, alpha: 1.0) // #030218
+        case .synthWave: return NSColor(red: 0.161, green: 0.090, blue: 0.231, alpha: 1.0) // #29173B
+        case .solarizedDark: return NSColor(red: 0.000, green: 0.169, blue: 0.212, alpha: 1.0) // #002B36
+        case .solarizedLight: return NSColor(red: 0.992, green: 0.965, blue: 0.890, alpha: 1.0) // #FDF6E3
+        case .gruvboxDark: return NSColor(red: 0.157, green: 0.157, blue: 0.157, alpha: 1.0) // #282828 (Hard)
+        case .crystalClear: return NSColor(white: 1.0, alpha: 0.15) // Glass Light
+        case .obsidianGlass: return NSColor(white: 0.0, alpha: 0.35) // Glass Dark
         }
     }
     
@@ -198,6 +240,18 @@ enum AppTheme: String, CaseIterable {
         case .transparent: return .white
         case .extraClear: return .white
         case .xnuDark: return NSColor(red: 0.8, green: 0.8, blue: 0.8, alpha: 1.0) // #CCCCCC
+        case .monokaiPro: return NSColor(red: 0.988, green: 0.988, blue: 0.941, alpha: 1.0) // #FCFCF0
+        case .oneDarkPro: return NSColor(red: 0.675, green: 0.745, blue: 0.804, alpha: 1.0) // #ABB2BF
+        case .nord: return NSColor(red: 0.847, green: 0.871, blue: 0.914, alpha: 1.0) // #D8DEE9
+        case .tokyoNight: return NSColor(red: 0.780, green: 0.792, blue: 0.910, alpha: 1.0) // #C0CAF5
+        case .catppuccin: return NSColor(red: 0.804, green: 0.839, blue: 0.957, alpha: 1.0) // #CDD6F4
+        case .cyberPunk: return NSColor(red: 0.075, green: 0.933, blue: 1.0, alpha: 1.0) // #13EFFF
+        case .synthWave: return NSColor(red: 1.0, green: 0.0, blue: 0.824, alpha: 1.0) // #FF00D2
+        case .solarizedDark: return NSColor(red: 0.514, green: 0.580, blue: 0.588, alpha: 1.0) // #839496
+        case .solarizedLight: return NSColor(red: 0.396, green: 0.482, blue: 0.514, alpha: 1.0) // #657B83
+        case .gruvboxDark: return NSColor(red: 0.922, green: 0.859, blue: 0.698, alpha: 1.0) // #EBDBB2
+        case .crystalClear: return NSColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 1.0) // Dark Text on Light Glass
+        case .obsidianGlass: return NSColor(red: 0.9, green: 0.95, blue: 1.0, alpha: 1.0) // Light Text on Dark Glass
         }
     }
     
@@ -227,6 +281,18 @@ enum AppTheme: String, CaseIterable {
         case .transparent: return NSColor(red: 0.73, green: 0.47, blue: 1.0, alpha: 1.0) // Glowing Purple
         case .extraClear: return NSColor(red: 0.5, green: 0.8, blue: 1.0, alpha: 1.0) // Sky Glow
         case .xnuDark: return NSColor(red: 1.0, green: 0.25, blue: 0.506, alpha: 1.0) // #FF4081 (Pink)
+        case .monokaiPro: return NSColor(red: 1.0, green: 0.380, blue: 0.412, alpha: 1.0) // #FF6188 (Red/Pink)
+        case .oneDarkPro: return NSColor(red: 0.796, green: 0.467, blue: 0.898, alpha: 1.0) // #CB77E5 (Purple)
+        case .nord: return NSColor(red: 0.506, green: 0.631, blue: 0.757, alpha: 1.0) // #81A1C1 (Blue)
+        case .tokyoNight: return NSColor(red: 0.729, green: 0.506, blue: 0.886, alpha: 1.0) // #BB9AF7 (Purple)
+        case .catppuccin: return NSColor(red: 0.796, green: 0.651, blue: 0.969, alpha: 1.0) // #CBA6F7 (Mauve)
+        case .cyberPunk: return NSColor(red: 1.0, green: 0.0, blue: 0.463, alpha: 1.0) // #FF0076 (Neon Red)
+        case .synthWave: return NSColor(red: 0.992, green: 0.882, blue: 0.153, alpha: 1.0) // #FDE127 (Yellow)
+        case .solarizedDark: return NSColor(red: 0.514, green: 0.580, blue: 0.000, alpha: 1.0) // #859900 (Green)
+        case .solarizedLight: return NSColor(red: 0.514, green: 0.580, blue: 0.000, alpha: 1.0) // #859900 (Green)
+        case .gruvboxDark: return NSColor(red: 0.984, green: 0.286, blue: 0.204, alpha: 1.0) // #FB4934 (Red)
+        case .crystalClear: return NSColor(red: 0.0, green: 0.4, blue: 0.8, alpha: 1.0) // Deep Blue
+        case .obsidianGlass: return NSColor(red: 0.4, green: 0.8, blue: 1.0, alpha: 1.0) // Cyan
         }
     }
     
@@ -255,6 +321,18 @@ enum AppTheme: String, CaseIterable {
         case .transparent: return NSColor(red: 0.0, green: 1.0, blue: 0.8, alpha: 1.0) // Neon Teal
         case .extraClear: return NSColor(red: 1.0, green: 0.5, blue: 1.0, alpha: 1.0) // Vivid Emrald
         case .xnuDark: return NSColor(red: 1.0, green: 0.54, blue: 0.4, alpha: 1.0) // #FF8A65 (Orange)
+        case .monokaiPro: return NSColor(red: 1.0, green: 0.847, blue: 0.361, alpha: 1.0) // #FFD866 (Yellow)
+        case .oneDarkPro: return NSColor(red: 0.596, green: 0.765, blue: 0.455, alpha: 1.0) // #98C379 (Green)
+        case .nord: return NSColor(red: 0.643, green: 0.741, blue: 0.549, alpha: 1.0) // #A3BE8C (Green)
+        case .tokyoNight: return NSColor(red: 0.608, green: 0.796, blue: 0.655, alpha: 1.0) // #9ECE6A (Green)
+        case .catppuccin: return NSColor(red: 0.651, green: 0.890, blue: 0.631, alpha: 1.0) // #A6E3A1 (Green)
+        case .cyberPunk: return NSColor(red: 0.004, green: 1.0, blue: 0.631, alpha: 1.0) // #01FF9F (Neon Green)
+        case .synthWave: return NSColor(red: 0.0, green: 1.0, blue: 1.0, alpha: 1.0) // #00FFFF (Cyan)
+        case .solarizedDark: return NSColor(red: 0.165, green: 0.631, blue: 0.596, alpha: 1.0) // #2AA198 (Cyan)
+        case .solarizedLight: return NSColor(red: 0.165, green: 0.631, blue: 0.596, alpha: 1.0) // #2AA198 (Cyan)
+        case .gruvboxDark: return NSColor(red: 0.722, green: 0.733, blue: 0.149, alpha: 1.0) // #B8BB26 (Green)
+        case .crystalClear: return NSColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 0.8) // Dark Grey
+        case .obsidianGlass: return NSColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.8) // Light Grey
         }
     }
     
@@ -284,6 +362,18 @@ enum AppTheme: String, CaseIterable {
         case .transparent: return NSColor(white: 0.7, alpha: 1.0)
         case .extraClear: return NSColor(white: 0.8, alpha: 0.6)
         case .xnuDark: return NSColor(red: 0.3, green: 0.69, blue: 0.31, alpha: 1.0) // #4CAF50 (Green)
+        case .monokaiPro: return NSColor(red: 0.447, green: 0.439, blue: 0.412, alpha: 1.0) // #727069
+        case .oneDarkPro: return NSColor(red: 0.365, green: 0.392, blue: 0.439, alpha: 1.0) // #5C6370
+        case .nord: return NSColor(red: 0.369, green: 0.416, blue: 0.482, alpha: 1.0) // #4C566A
+        case .tokyoNight: return NSColor(red: 0.345, green: 0.369, blue: 0.494, alpha: 1.0) // #565F89
+        case .catppuccin: return NSColor(red: 0.424, green: 0.447, blue: 0.522, alpha: 1.0) // #6C7086 (Overlay0)
+        case .cyberPunk: return NSColor(red: 0.439, green: 0.439, blue: 0.490, alpha: 1.0) // #70707D
+        case .synthWave: return NSColor(red: 0.306, green: 0.247, blue: 0.404, alpha: 1.0) // #493F67
+        case .solarizedDark: return NSColor(red: 0.345, green: 0.431, blue: 0.459, alpha: 1.0) // #586E75
+        case .solarizedLight: return NSColor(red: 0.576, green: 0.631, blue: 0.631, alpha: 1.0) // #93A1A1
+        case .gruvboxDark: return NSColor(red: 0.573, green: 0.514, blue: 0.451, alpha: 1.0) // #928374
+        case .crystalClear: return NSColor(red: 0.2, green: 0.4, blue: 0.2, alpha: 0.6) // Glassy Green
+        case .obsidianGlass: return NSColor(red: 0.4, green: 0.6, blue: 0.4, alpha: 0.6) // Glassy Green
         }
     }
     
@@ -312,6 +402,18 @@ enum AppTheme: String, CaseIterable {
         case .transparent: return NSColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 1.0) // Neon Yellow
         case .extraClear: return NSColor(red: 1.0, green: 0.5, blue: 1.0, alpha: 1.0) // Neon Pink
         case .xnuDark: return NSColor(red: 1.0, green: 0.84, blue: 0.31, alpha: 1.0) // #FFD54F (Yellow)
+        case .monokaiPro: return NSColor(red: 0.671, green: 0.553, blue: 1.0, alpha: 1.0) // #AB8DFF (Purple)
+        case .oneDarkPro: return NSColor(red: 0.898, green: 0.725, blue: 0.369, alpha: 1.0) // #E5C07B (Gold)
+        case .nord: return NSColor(red: 0.733, green: 0.580, blue: 0.835, alpha: 1.0) // #B48EAD (Purple)
+        case .tokyoNight: return NSColor(red: 1.0, green: 0.608, blue: 0.404, alpha: 1.0) // #FF9E64 (Orange)
+        case .catppuccin: return NSColor(red: 0.980, green: 0.702, blue: 0.529, alpha: 1.0) // #FAB387 (Peach)
+        case .cyberPunk: return NSColor(red: 1.0, green: 0.522, blue: 0.059, alpha: 1.0) // #FF850F (Orange)
+        case .synthWave: return NSColor(red: 1.0, green: 0.569, blue: 0.176, alpha: 1.0) // #FF912D (Orange)
+        case .solarizedDark: return NSColor(red: 0.827, green: 0.294, blue: 0.196, alpha: 1.0) // #D33692 (Magenta) - Used for numbers/constants often
+        case .solarizedLight: return NSColor(red: 0.827, green: 0.294, blue: 0.196, alpha: 1.0) // #D33692 (Magenta)
+        case .gruvboxDark: return NSColor(red: 0.831, green: 0.612, blue: 0.780, alpha: 1.0) // #D3869B (Purple)
+        case .crystalClear: return NSColor(red: 0.6, green: 0.2, blue: 0.8, alpha: 1.0) // Purple
+        case .obsidianGlass: return NSColor(red: 0.8, green: 0.6, blue: 1.0, alpha: 1.0) // Lilac
         }
     }
     
@@ -341,6 +443,18 @@ enum AppTheme: String, CaseIterable {
         case .transparent: return NSColor(red: 1.0, green: 0.2, blue: 0.6, alpha: 1.0) // Hot Pink
         case .extraClear: return NSColor(red: 0.2, green: 0.9, blue: 0.4, alpha: 1.0) // Lime
         case .xnuDark: return NSColor(red: 0.31, green: 0.76, blue: 0.97, alpha: 1.0) // #4FC3F7 (Light Blue)
+        case .monokaiPro: return NSColor(red: 0.412, green: 0.847, blue: 0.988, alpha: 1.0) // #69D9FC (Blue)
+        case .oneDarkPro: return NSColor(red: 0.349, green: 0.718, blue: 0.773, alpha: 1.0) // #56B6C2 (Cyan)
+        case .nord: return NSColor(red: 0.561, green: 0.737, blue: 0.733, alpha: 1.0) // #8FBCBB (Teal)
+        case .tokyoNight: return NSColor(red: 0.165, green: 0.796, blue: 0.902, alpha: 1.0) // #2AC3DE (Cyan)
+        case .catppuccin: return NSColor(red: 0.533, green: 0.753, blue: 0.933, alpha: 1.0) // #89B4FA (Blue)
+        case .cyberPunk: return NSColor(red: 0.612, green: 0.153, blue: 0.957, alpha: 1.0) // #9C27F4 (Purple)
+        case .synthWave: return NSColor(red: 0.224, green: 0.863, blue: 1.0, alpha: 1.0) // #39DCFF (Cyan)
+        case .solarizedDark: return NSColor(red: 0.796, green: 0.545, blue: 0.0, alpha: 1.0) // #CB4B16 (Orange) - Types often mapped here or Yellow
+        case .solarizedLight: return NSColor(red: 0.796, green: 0.545, blue: 0.0, alpha: 1.0) // #CB4B16 (Orange)
+        case .gruvboxDark: return NSColor(red: 0.980, green: 0.741, blue: 0.184, alpha: 1.0) // #FABD2F (Yellow)
+        case .crystalClear: return NSColor(red: 0.0, green: 0.5, blue: 0.5, alpha: 1.0) // Cyan
+        case .obsidianGlass: return NSColor(red: 0.2, green: 0.9, blue: 0.9, alpha: 1.0) // Bright Cyan
         }
     }
     
@@ -370,6 +484,20 @@ enum AppTheme: String, CaseIterable {
         case .transparent: return NSColor(red: 0.2, green: 0.8, blue: 1.0, alpha: 1.0) // Cyan
         case .extraClear: return NSColor(red: 1.0, green: 0.4, blue: 0.2, alpha: 1.0) // Sunset
         case .xnuDark: return NSColor(red: 0.31, green: 0.76, blue: 0.97, alpha: 1.0) // #4FC3F7
+        case .monokaiPro: return NSColor(red: 0.639, green: 0.863, blue: 0.353, alpha: 1.0) // #A9DC5A (Green)
+        case .oneDarkPro: return NSColor(red: 0.380, green: 0.655, blue: 0.871, alpha: 1.0) // #61AFEF (Blue)
+        case .nord: return NSColor(red: 0.533, green: 0.655, blue: 0.812, alpha: 1.0) // #88C0D0 (Blue)
+        case .tokyoNight: return NSColor(red: 0.490, green: 0.690, blue: 0.941, alpha: 1.0) // #7DCFFF (Blue)
+        case .catppuccin: return NSColor(red: 0.553, green: 0.878, blue: 0.353, alpha: 1.0) // #CBA6F7 -> Repurposed Blue for functions usually
+        // Note: For Catppuccin, Function is usually Blue (#89B4FA), correcting here:
+        case .catppuccin: return NSColor(red: 0.537, green: 0.706, blue: 0.980, alpha: 1.0) // #89B4FA (Blue)
+        case .cyberPunk: return NSColor(red: 1.0, green: 0.0, blue: 0.886, alpha: 1.0) // #FF00E2 (Pink)
+        case .synthWave: return NSColor(red: 1.0, green: 0.082, blue: 0.435, alpha: 1.0) // #FF156F (Pink)
+        case .solarizedDark: return NSColor(red: 0.149, green: 0.545, blue: 0.824, alpha: 1.0) // #268BD2 (Blue)
+        case .solarizedLight: return NSColor(red: 0.149, green: 0.545, blue: 0.824, alpha: 1.0) // #268BD2 (Blue)
+        case .gruvboxDark: return NSColor(red: 0.514, green: 0.780, blue: 0.769, alpha: 1.0) // #83A598 (Blue)
+        case .crystalClear: return NSColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0) // Blue
+        case .obsidianGlass: return NSColor(red: 0.4, green: 0.7, blue: 1.0, alpha: 1.0) // Light Blue
         }
     }
     
@@ -401,6 +529,18 @@ enum AppTheme: String, CaseIterable {
         case .transparent: return NSColor(white: 1.0, alpha: 0.2) // Glassy White
         case .extraClear: return NSColor(white: 1.0, alpha: 0.1) // Subtle Highlight
         case .xnuDark: return NSColor(red: 0.173, green: 0.243, blue: 0.314, alpha: 1.0) // #2C3E50
+        case .monokaiPro: return NSColor(red: 0.251, green: 0.243, blue: 0.282, alpha: 1.0) // #403E48
+        case .oneDarkPro: return NSColor(red: 0.235, green: 0.251, blue: 0.306, alpha: 1.0) // #3D414D
+        case .nord: return NSColor(red: 0.263, green: 0.298, blue: 0.369, alpha: 1.0) // #434C5E
+        case .tokyoNight: return NSColor(red: 0.204, green: 0.227, blue: 0.314, alpha: 1.0) // #343A50
+        case .catppuccin: return NSColor(red: 0.275, green: 0.275, blue: 0.369, alpha: 1.0) // #45475A
+        case .cyberPunk: return NSColor(red: 0.2, green: 0.05, blue: 0.3, alpha: 1.0) // #330D4D
+        case .synthWave: return NSColor(red: 0.271, green: 0.149, blue: 0.361, alpha: 1.0) // #45265C
+        case .solarizedDark: return NSColor(red: 0.027, green: 0.212, blue: 0.259, alpha: 1.0) // #073642
+        case .solarizedLight: return NSColor(red: 0.933, green: 0.910, blue: 0.835, alpha: 1.0) // #EEE8D5
+        case .gruvboxDark: return NSColor(red: 0.314, green: 0.286, blue: 0.263, alpha: 1.0) // #504945
+        case .crystalClear: return NSColor(red: 0.0, green: 0.4, blue: 0.8, alpha: 0.2) // Blue Tint
+        case .obsidianGlass: return NSColor(red: 0.4, green: 0.8, blue: 1.0, alpha: 0.2) // Cyan Tint
         }
     }
     
@@ -430,6 +570,18 @@ enum AppTheme: String, CaseIterable {
         case .transparent: return NSColor(white: 1.0, alpha: 0.1)
         case .extraClear: return NSColor(white: 1.0, alpha: 0.05)
         case .xnuDark: return NSColor(red: 0.118, green: 0.118, blue: 0.118, alpha: 1.0) // #1E1E1E
+        case .monokaiPro: return NSColor(red: 0.22, green: 0.22, blue: 0.24, alpha: 1.0)
+        case .oneDarkPro: return NSColor(red: 0.18, green: 0.20, blue: 0.23, alpha: 1.0)
+        case .nord: return NSColor(red: 0.23, green: 0.26, blue: 0.32, alpha: 1.0)
+        case .tokyoNight: return NSColor(red: 0.13, green: 0.13, blue: 0.22, alpha: 1.0)
+        case .catppuccin: return NSColor(red: 0.15, green: 0.15, blue: 0.22, alpha: 1.0)
+        case .cyberPunk: return NSColor(red: 0.1, green: 0.05, blue: 0.2, alpha: 1.0)
+        case .synthWave: return NSColor(red: 0.2, green: 0.12, blue: 0.3, alpha: 1.0)
+        case .solarizedDark: return NSColor(red: 0.02, green: 0.18, blue: 0.23, alpha: 1.0)
+        case .solarizedLight: return NSColor(red: 0.96, green: 0.94, blue: 0.88, alpha: 1.0)
+        case .gruvboxDark: return NSColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1.0)
+        case .crystalClear: return NSColor(white: 1.0, alpha: 0.1)
+        case .obsidianGlass: return NSColor(white: 0.2, alpha: 0.2)
         }
     }
     
@@ -475,6 +627,8 @@ enum EditorMode: String, CaseIterable, Identifiable {
     case scenario = "scenario"
     case design = "design"
     case remoteX = "Remote X"
+    case embedded = "Embedded Studio"
+    case aiAgent = "AI Agent"
     
     var id: String { rawValue }
     
@@ -486,6 +640,8 @@ enum EditorMode: String, CaseIterable, Identifiable {
         case .notebook: return "Notebook"
         case .scenario: return "Scenario"
         case .design: return "Design"
+        case .embedded: return "Embedded Studio"
+        case .aiAgent: return "AI Agent"
         }
     }
     
@@ -497,6 +653,8 @@ enum EditorMode: String, CaseIterable, Identifiable {
         case .notebook: return "book.pages"
         case .scenario: return "flowchart"
         case .design: return "paintbrush.pointed" // Penpot style icon
+        case .embedded: return "cpu.fill" // Chip icon
+        case .aiAgent: return "brain.head.profile" // AI brain icon
         }
     }
 }
@@ -523,6 +681,7 @@ class AppState: ObservableObject {
     @Published var openFiles: [CodeFile] = []
     @Published var currentFileIndex: Int = 0
     @Published var currentFile: CodeFile?
+    @Published var microCodeService: MicroCodeService? // AI Core
 
     @Published var sidebarVisible: Bool = true
     @Published var consoleVisible: Bool = true
@@ -989,6 +1148,9 @@ class AppState: ObservableObject {
         
         // Step 1: Immediate UI update (no CPU cost)
         self.workspaceFolder = url
+        
+        // Initialize MicroCode AI Core
+        self.microCodeService = MicroCodeService(workspacePath: url.path)
         
         // Step 2: Load file tree (main operation, already optimized)
         await self.refreshFileTree()
@@ -1587,213 +1749,261 @@ class AppState: ObservableObject {
         try? FileManager.default.removeItem(at: sourceFile)
     }
     
+    /// Execute script content directly (Public helper for Playground)
+    @MainActor
+    public func executeScript(code: String, language: String) async -> (stdout: String, stderr: String, exitCode: Int32) {
+        let tempDir = FileManager.default.temporaryDirectory
+        let ext = fileExtension(for: language)
+        let filename = "script_\(UUID().uuidString).\(ext)"
+        let sourceFile = tempDir.appendingPathComponent(filename)
+        
+        do {
+            try code.write(to: sourceFile, atomically: true, encoding: .utf8)
+            let result = await executeLocalCommand(language: language, sourcePath: sourceFile.path, tempDir: tempDir)
+            try? FileManager.default.removeItem(at: sourceFile)
+            return result
+        } catch {
+            return ("", "Error: Failed to write temp file: \(error.localizedDescription)", 1)
+        }
+    }
+
+    private func fileExtension(for language: String) -> String {
+        switch language.lowercased() {
+        case "python": return "py"
+        case "javascript": return "js"
+        case "typescript": return "ts"
+        case "swift": return "swift"
+        case "java": return "java"
+        case "kotlin": return "kt"
+        case "rust": return "rs"
+        case "go": return "go"
+        case "c": return "c"
+        case "cpp", "c++": return "cpp"
+        case "ruby": return "rb"
+        case "lua": return "lua"
+        case "perl": return "pl"
+        case "php": return "php"
+        case "shell", "bash": return "sh"
+        case "r": return "r"
+        case "julia": return "jl"
+        case "zig": return "zig"
+        case "nim": return "nim"
+        case "d": return "d"
+        case "fortran": return "f90"
+        case "pascal": return "pas"
+        case "elixir": return "ex"
+        case "clojure": return "clj"
+        case "groovy": return "groovy"
+        case "haxe": return "hx"
+        case "scala": return "scala"
+        case "fsharp": return "fs"
+        case "vala": return "vala"
+        case "assembly": return "s"
+        case "solidity": return "sol"
+        case "powershell": return "ps1"
+        case "csharp": return "cs"
+        case "objective-c": return "m"
+        case "objective-cpp": return "mm"
+        case "ocaml": return "ml"
+        case "haskell": return "hs"
+        default: return "txt"
+        }
+    }
+
     /// Execute command for specific language
-    private func executeLocalCommand(language: String, sourcePath: String, tempDir: URL) async -> (stdout: String, stderr: String, exitCode: Int32) {
+    func executeLocalCommand(language: String, sourcePath: String, tempDir: URL) async -> (stdout: String, stderr: String, exitCode: Int32) {
         let lang = language.lowercased()
         var args: [String] = []
         var executable = "/usr/bin/env"
         
         switch lang {
-        case "python", "py":
+        case "python", "py", "python3":
             args = ["python3", sourcePath]
+            
         case "javascript", "js":
             args = ["node", sourcePath]
+            
         case "typescript", "ts":
-            // Compile then run
             let jsPath = tempDir.appendingPathComponent("output.js").path
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["npx", "tsc", "--outFile", jsPath, sourcePath])
-            if compileResult.exitCode != 0 {
-                return compileResult
-            }
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["npx", "tsc", "--outFile", jsPath, sourcePath])
+            if compileResult.exitCode != 0 { return compileResult }
             args = ["node", jsPath]
+            
         case "swift":
             args = ["swift", sourcePath]
+            
         case "java":
-            // Java needs class name from filename
             let className = (sourcePath as NSString).lastPathComponent.replacingOccurrences(of: ".java", with: "")
             let classDir = (sourcePath as NSString).deletingLastPathComponent
-            // Compile
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["javac", "-d", classDir, sourcePath])
-            if compileResult.exitCode != 0 {
-                return compileResult
-            }
-            // Run
-            return runProcess(executable: "/usr/bin/env", arguments: ["java", "-cp", classDir, className])
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["javac", "-d", classDir, sourcePath])
+            if compileResult.exitCode != 0 { return compileResult }
+            return await runProcess(executable: "/usr/bin/env", arguments: ["java", "-cp", classDir, className])
+            
         case "kotlin", "kt":
             let jarPath = tempDir.appendingPathComponent("output.jar").path
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["kotlinc", sourcePath, "-include-runtime", "-d", jarPath])
-            if compileResult.exitCode != 0 {
-                return compileResult
-            }
-            return runProcess(executable: "/usr/bin/env", arguments: ["java", "-jar", jarPath])
+            // Assumes kotlinc is in path
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["kotlinc", sourcePath, "-include-runtime", "-d", jarPath])
+            if compileResult.exitCode != 0 { return compileResult }
+            return await runProcess(executable: "/usr/bin/env", arguments: ["java", "-jar", jarPath])
+            
         case "go", "golang":
             args = ["go", "run", sourcePath]
+            
+        // Systems
         case "rust", "rs":
-            let outputPath = tempDir.appendingPathComponent("output").path
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["rustc", "-o", outputPath, sourcePath])
-            if compileResult.exitCode != 0 {
-                return compileResult
-            }
-            executable = outputPath
-            args = []
+            let outputPath = tempDir.appendingPathComponent("output_rs").path
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["rustc", "-o", outputPath, sourcePath])
+            if compileResult.exitCode != 0 { return compileResult }
+            return await runProcess(executable: outputPath, arguments: [])
+            
         case "c":
-            let outputPath = tempDir.appendingPathComponent("output").path
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["clang", "-o", outputPath, sourcePath])
-            if compileResult.exitCode != 0 {
-                return compileResult
-            }
-            return runProcess(executable: outputPath, arguments: [])
-        case "cpp", "c++":
-            let outputPath = tempDir.appendingPathComponent("output").path
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["clang++", "-o", outputPath, sourcePath])
-            if compileResult.exitCode != 0 {
-                return compileResult
-            }
-            return runProcess(executable: outputPath, arguments: [])
-        case "objective-c": // New: Objective-C
-            let outputPath = tempDir.appendingPathComponent("output").path
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["clang", "-framework", "Foundation", "-o", outputPath, sourcePath])
-            if compileResult.exitCode != 0 {
-                return compileResult
-            }
-            return runProcess(executable: outputPath, arguments: [])
-        case "objective-cpp": // New: Objective-C++
-            let outputPath = tempDir.appendingPathComponent("output").path
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["clang++", "-framework", "Foundation", "-o", outputPath, sourcePath])
-            if compileResult.exitCode != 0 {
-                return compileResult
-            }
-            return runProcess(executable: outputPath, arguments: [])
-        case "csharp", "cs": // New: C#
-            // Try dotnet run if project, else try mcs/mono
+            let outputPath = tempDir.appendingPathComponent("output_c").path
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["clang", "-o", outputPath, sourcePath])
+            if compileResult.exitCode != 0 { return compileResult }
+            return await runProcess(executable: outputPath, arguments: [])
+            
+        case "cpp", "c++", "cxx", "cc":
+            let outputPath = tempDir.appendingPathComponent("output_cpp").path
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["clang++", "-std=c++20", "-o", outputPath, sourcePath])
+            if compileResult.exitCode != 0 { return compileResult }
+            return await runProcess(executable: outputPath, arguments: [])
+            
+        case "objective-c", "objc", "m":
+            let outputPath = tempDir.appendingPathComponent("output_objc").path
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["clang", "-framework", "Foundation", "-o", outputPath, sourcePath])
+            if compileResult.exitCode != 0 { return compileResult }
+            return await runProcess(executable: outputPath, arguments: [])
+            
+        case "objective-c++", "objective-cpp", "objcpp", "mm":
+            let outputPath = tempDir.appendingPathComponent("output_objcpp").path
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["clang++", "-framework", "Foundation", "-o", outputPath, sourcePath])
+            if compileResult.exitCode != 0 { return compileResult }
+            return await runProcess(executable: outputPath, arguments: [])
+            
+        // .NET / C#
+        case "csharp", "cs":
+            // Try mono mcs first for single file
             let binPath = tempDir.appendingPathComponent("out.exe").path
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["mcs", sourcePath, "-out:" + binPath])
-            if compileResult.exitCode != 0 {
-                return compileResult
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["mcs", sourcePath, "-out:" + binPath])
+            if compileResult.exitCode == 0 {
+                return await runProcess(executable: "/usr/bin/env", arguments: ["mono", binPath])
             }
-            return runProcess(executable: "/usr/bin/env", arguments: ["mono", binPath])
-        case "ruby", "rb": // New: Ruby
-            args = ["ruby", sourcePath]
-        case "lua": // New: Lua
-            args = ["lua", sourcePath]
-        case "perl", "pl": // New: Perl / Prolog (conflict: pl) - Prolog usually pl, Perl pl. Let's assume Prolog if user selected Prolog.
-            if lang == "prolog" {
-                 // SWI-Prolog
-                 args = ["swipl", "-q", "-t", "main", "-f", sourcePath]
-            } else {
-                 args = ["perl", sourcePath]
-            }
-        case "r": // New: R
-            args = ["Rscript", sourcePath]
-        case "julia", "jl": // New: Julia
-            args = ["julia", sourcePath]
-        case "matlab", "m": // New: Matlab / ObjC conflict. 
-            // Since ObjC is "objective-c" in ID, "m" might be ambiguous if detected by extension.
-            // But executeLocalCommand takes 'language' ID usually.
-            // Assuming "matlab" ID.
-            if lang == "objective-c" {
-                 // Fallback to ObjC logic if passed here by error
-                 let outputPath = tempDir.appendingPathComponent("output").path
-                 let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["clang", "-framework", "Foundation", "-o", outputPath, sourcePath])
-                 if compileResult.exitCode != 0 { return compileResult }
-                 return runProcess(executable: outputPath, arguments: [])
-            }
-            // Matlab execution
-            args = ["matlab", "-batch", "run('" + sourcePath + "')"]
-        case "ocaml", "ml": // New: OCaml
-            args = ["ocaml", sourcePath]
-        case "haskell", "hs":
-            args = ["runghc", sourcePath]
-        case "metal":
-            // Metal compilation check
-            let irPath = tempDir.appendingPathComponent("output.air").path
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["xcrun", "-sdk", "macosx", "metal", "-c", sourcePath, "-o", irPath])
-            return (compileResult.stdout + "\n✅ Metal Compilation Successful (AIR generated)", compileResult.stderr, compileResult.exitCode)
-        case "solidity", "sol":
-            // Solidity compilation check
-            return runProcess(executable: "/usr/bin/env", arguments: ["solc", sourcePath, "--bin"])
-        case "dart":
-            args = ["dart", "run", sourcePath]
-        case "scala":
-            args = ["scala", sourcePath]
-        case "fsharp", "fs":
-            args = ["dotnet", "fsi", sourcePath]
-        case "assembly", "s", "asm":
+            // Fallback to dotnet run (requires project file usually, but maybe simple?)
+            return compileResult
+            
+        // Scripting
+        case "ruby", "rb": args = ["ruby", sourcePath]
+        case "lua": args = ["lua", sourcePath]
+        case "perl", "pl": args = ["perl", sourcePath]
+        case "php": args = ["php", sourcePath]
+        case "shell", "bash", "sh": args = ["bash", sourcePath]
+        case "powershell", "ps1": args = ["pwsh", sourcePath]
+        
+        // Data Science
+        case "r": args = ["Rscript", sourcePath]
+        case "julia", "jl": args = ["julia", sourcePath]
+        case "matlab": args = ["matlab", "-batch", "run('" + sourcePath + "')"]
+            
+        // Functional / Others
+        case "ocaml", "ml": args = ["ocaml", sourcePath]
+        case "haskell", "hs": args = ["runghc", sourcePath]
+        case "dart": args = ["dart", "run", sourcePath]
+        case "scala": args = ["scala", sourcePath]
+        case "groovy": args = ["groovy", sourcePath]
+        case "elixir", "ex", "exs": args = ["elixir", sourcePath]
+        case "clojure", "clj": args = ["clojure", "-M", sourcePath]
+        
+        // Systems (Modern)
+        case "zig": args = ["zig", "run", sourcePath]
+        case "nim": args = ["nim", "compile", "--run", sourcePath]
+        case "d", "dlang": args = ["rdmd", sourcePath]
+        case "v": args = ["v", "run", sourcePath]
+        
+        // Legacy / Low Level
+        case "fortran", "f90", "f95":
+            let outputPath = tempDir.appendingPathComponent("output_f90").path
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["gfortran", "-o", outputPath, sourcePath])
+            if compileResult.exitCode != 0 { return compileResult }
+            return await runProcess(executable: outputPath, arguments: [])
+            
+        case "pascal", "pas":
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["fpc", sourcePath])
+            if compileResult.exitCode != 0 { return compileResult }
+            let binaryName = (sourcePath as NSString).lastPathComponent.replacingOccurrences(of: ".\((sourcePath as NSString).pathExtension)", with: "")
+            let binaryPath = tempDir.appendingPathComponent(binaryName).path
+            return await runProcess(executable: binaryPath, arguments: [])
+            
+        case "assembly", "asm", "s":
              let objPath = tempDir.appendingPathComponent("out.o").path
              let binPath = tempDir.appendingPathComponent("out").path
-             // Assemble (ARM64 macOS)
-             let asResult = runProcess(executable: "/usr/bin/env", arguments: ["as", "-o", objPath, sourcePath])
+             let asResult = await runProcess(executable: "/usr/bin/env", arguments: ["as", "-o", objPath, sourcePath])
              if asResult.exitCode != 0 { return asResult }
-             // Link
-             let sdkPath = runProcess(executable: "/usr/bin/env", arguments: ["xcrun", "-sdk", "macosx", "--show-sdk-path"]).stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-             let ldResult = runProcess(executable: "/usr/bin/env", arguments: ["ld", "-o", binPath, objPath, "-lSystem", "-syslibroot", sdkPath, "-e", "_main", "-arch", "arm64"])
+             let sdkPath = await runProcess(executable: "/usr/bin/env", arguments: ["xcrun", "-sdk", "macosx", "--show-sdk-path"]).stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+             let ldResult = await runProcess(executable: "/usr/bin/env", arguments: ["ld", "-o", binPath, objPath, "-lSystem", "-syslibroot", sdkPath, "-e", "_main", "-arch", "arm64"])
              if ldResult.exitCode != 0 { return ldResult }
-             return runProcess(executable: binPath, arguments: [])
-        case "vala":
-            let binPath = tempDir.appendingPathComponent("prog").path
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["valac", sourcePath, "-o", binPath])
-             if compileResult.exitCode != 0 { return compileResult }
-             return runProcess(executable: binPath, arguments: [])
-        case "powershell", "ps1":
-            args = ["pwsh", sourcePath]
-        case "objective-c", "objc", "m":
-            let outputPath = tempDir.appendingPathComponent("output").path
-            let compileResult = runProcess(executable: "/usr/bin/env", arguments: ["clang", "-framework", "Foundation", "-o", outputPath, sourcePath])
-            if compileResult.exitCode != 0 {
-                return compileResult
-            }
-            return runProcess(executable: outputPath, arguments: [])
-        case "ruby", "rb":
-            args = ["ruby", sourcePath]
-        case "perl", "pl":
-            args = ["perl", sourcePath]
-        case "php":
-            args = ["php", sourcePath]
-        case "shell", "bash", "sh":
-            args = ["bash", sourcePath]
-        case "lua":
-            args = ["lua", sourcePath]
+             return await runProcess(executable: binPath, arguments: [])
+             
+        case "metal":
+            let irPath = tempDir.appendingPathComponent("output.air").path
+            let compileResult = await runProcess(executable: "/usr/bin/env", arguments: ["xcrun", "-sdk", "macosx", "metal", "-c", sourcePath, "-o", irPath])
+            return (compileResult.stdout + "\n✅ Metal Compiled", compileResult.stderr, compileResult.exitCode)
+            
+        case "solidity", "sol":
+            return await runProcess(executable: "/usr/bin/env", arguments: ["solc", sourcePath, "--bin"])
+            
+        case "sql", "sqlite":
+             // Run against in-memory db by default
+             args = ["sqlite3", ":memory:", ".read \(sourcePath)"]
+             
+        case "haxe", "hx": // New: Haxe
+            // Haxe --interp requires a Main class. We assume the user wrote a class named 'Main'.
+            args = ["haxe", "--main", "Main", "--interp"]
+            
         default:
-            return ("", "Error: Unsupported language '\(language)'. Supported: python, javascript, swift, java, kotlin, go, rust, c, c++, ruby, perl, php, lua, bash.\n", 1)
+            return ("", "Error: Language '\(language)' not supported yet.", 1)
         }
         
-        if args.isEmpty && executable != "/usr/bin/env" {
-            return runProcess(executable: executable, arguments: [])
+        if executable == "/usr/bin/env" && !args.isEmpty {
+             return await runProcess(executable: "/usr/bin/env", arguments: args)
         }
         
-        return runProcess(executable: executable, arguments: args)
+        return await runProcess(executable: executable, arguments: args)
     }
     
     /// Run a process and capture output
-    private func runProcess(executable: String, arguments: [String]) -> (stdout: String, stderr: String, exitCode: Int32) {
-        let process = Process()
-        
-        if executable == "/usr/bin/env" {
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = arguments
-        } else {
-            process.executableURL = URL(fileURLWithPath: executable)
-            process.arguments = arguments
-        }
-        
-        let stdoutPipe = Pipe()
-        let stderrPipe = Pipe()
-        process.standardOutput = stdoutPipe
-        process.standardError = stderrPipe
-        
-        do {
-            try process.run()
-            process.waitUntilExit()
+    private func runProcess(executable: String, arguments: [String]) async -> (stdout: String, stderr: String, exitCode: Int32) {
+        return await withCheckedContinuation { continuation in
+            let process = Process()
             
-            let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-            let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            if executable == "/usr/bin/env" {
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+                process.arguments = arguments
+            } else {
+                process.executableURL = URL(fileURLWithPath: executable)
+                process.arguments = arguments
+            }
             
-            let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
-            let stderr = String(data: stderrData, encoding: .utf8) ?? ""
+            let stdoutPipe = Pipe()
+            let stderrPipe = Pipe()
+            process.standardOutput = stdoutPipe
+            process.standardError = stderrPipe
             
-            return (stdout, stderr, process.terminationStatus)
-        } catch {
-            return ("", "Error: \(error.localizedDescription)\n", 1)
+            process.terminationHandler = { process in
+                // Read data safely
+                let stdoutData = try? stdoutPipe.fileHandleForReading.readToEnd()
+                let stderrData = try? stderrPipe.fileHandleForReading.readToEnd()
+                
+                let stdout = String(data: stdoutData ?? Data(), encoding: .utf8) ?? ""
+                let stderr = String(data: stderrData ?? Data(), encoding: .utf8) ?? ""
+                
+                continuation.resume(returning: (stdout, stderr, process.terminationStatus))
+            }
+            
+            do {
+                try process.run()
+            } catch {
+                continuation.resume(returning: ("", "Error: \(error.localizedDescription)\n", 1))
+            }
         }
     }
 
@@ -2343,8 +2553,14 @@ class AppState: ObservableObject {
 
     // MARK: - File Tree
 
+    /// Alias for reloadFileTree for backward compatibility
     @MainActor
-    func refreshFileTree() async {
+    public func refreshFileTree() async {
+        await reloadFileTree()
+    }
+    
+    @MainActor
+    public func reloadFileTree() async {
         guard let folder = workspaceFolder else { return }
         
         // FolderFreezeDebugger.shared.logRefreshStart()
@@ -2620,7 +2836,8 @@ class AppState: ObservableObject {
     
     // MARK: - Python Version Detection
     
-    func detectPythonVersions() {
+    @MainActor
+    public func detectPythonVersions() {
         // Capture workspace folder on Main Thread to avoid actor isolation issues
         let currentFolder = workspaceFolder
         
@@ -2773,6 +2990,29 @@ class AppState: ObservableObject {
         case "ar": return "ardium"
         case "dart": return "dart"
         case "php": return "php"
+        case "cs": return "csharp"
+        case "lua": return "lua"
+        case "pl", "pm": return "perl"
+        case "r": return "r"
+        case "jl": return "julia"
+        case "sql": return "sql"
+        case "ml", "mli": return "ocaml"
+        case "hs": return "haskell"
+        case "zig": return "zig"
+        case "nim": return "nim"
+        case "d": return "d"
+        case "f90", "f95", "f03": return "fortran"
+        case "pas", "pp": return "pascal"
+        case "ex", "exs": return "elixir"
+        case "clj", "cljs": return "clojure"
+        case "groovy": return "groovy"
+        case "hx": return "haxe"
+        case "scala", "sc": return "scala"
+        case "fs", "fsi", "fsx": return "fsharp"
+        case "vala": return "vala"
+        case "ps1": return "powershell"
+        case "asm", "s": return "assembly"
+        case "sol": return "solidity"
         default: return "text"
         }
     }

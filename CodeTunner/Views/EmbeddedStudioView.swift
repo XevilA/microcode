@@ -9,7 +9,7 @@ import SwiftUI
 import CodeTunnerSupport
 
 struct EmbeddedStudioView: View {
-    @Environment(\.dismiss) private var dismiss
+    // Dismiss removed for Full Window Mode
     @EnvironmentObject var appState: AppState
     
     // Studio State
@@ -106,7 +106,7 @@ struct EmbeddedStudioView: View {
                     
                     Spacer()
                     
-                    Button(action: { dismiss() }) {
+                    Button(action: { appState.setEditorMode(.code) }) {
                         Image(systemName: "xmark")
                     }
                     .buttonStyle(.plain)

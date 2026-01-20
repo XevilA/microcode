@@ -60,17 +60,51 @@ compile_arch() {
     
     RUST_LIB_PATH="$(pwd)/backend/target/${RUST_TARGET}/${RUST_CONFIG}"
 
+    # 1.0b MicroCode Core (AI Brain) - UniFFI
+    echo "   🧠 Compiling MicroCode Core (with UniFFI)..."
+    cd microcode_core
+    # Build release library
+    cargo build --release --target "${RUST_TARGET}"
+    
+    # Generate Swift Bindings (Only needs to happen once, but we do it per arch for simplicity or just skip if exists)
+    # We use the host architecture to run bindgen
+    if [ "$ARCH" = "arm64" ]; then
+        echo "   🔗 Generating Swift Bindings for MicroCore..."
+        
+        # Temp dir for generation
+        mkdir -p build/gen_swift
+        
+        # Build bindgen tool
+        cargo run --release --bin uniffi-bindgen generate \
+            --library target/${RUST_TARGET}/release/libmicrocode_core.dylib \
+            --language swift \
+            --out-dir build/gen_swift \
+            --no-format
+            
+        # Move generated files to correct locations
+        # 1. Swift file -> CodeTunner source
+        mkdir -p ../CodeTunner/Services/MicroCore
+        cp build/gen_swift/microcode_core.swift ../CodeTunner/Services/MicroCore/MicroCore.swift
+        
+        # 2. C Headers/Modulemap -> MicrocodeCoreSupport
+        cp build/gen_swift/microcode_coreFFI.h ../MicrocodeCoreSupport/include/
+        cp build/gen_swift/microcode_coreFFI.modulemap ../MicrocodeCoreSupport/include/module.modulemap
+    fi
+    cd ..
+    
+    MICROCORE_LIB_PATH="$(pwd)/microcode_core/target/${RUST_TARGET}/release"
+
     # 1.1 Swift App (Main) -- Linking Rust Lib
     echo "   🔨 Compiling Swift App..."
+    
+    # Common flags
+    LINK_FLAGS="-Xlinker -L${RUST_LIB_PATH} -Xlinker -lcodetunner_embedded -Xlinker -L${MICROCORE_LIB_PATH} -Xlinker -lmicrocode_core"
+    
     if [ "$DEV_MODE" = "true" ]; then
-        swift build -c release --product CodeTunner --arch "${ARCH}" \
-            -Xlinker -L"${RUST_LIB_PATH}" \
-            -Xlinker -lcodetunner_embedded
+        swift build -c release --product CodeTunner --arch "${ARCH}" ${LINK_FLAGS}
         SWIFT_CONFIG="release"
     else
-        swift build -c release --product CodeTunner --arch "${ARCH}" \
-            -Xlinker -L"${RUST_LIB_PATH}" \
-            -Xlinker -lcodetunner_embedded
+        swift build -c release --product CodeTunner --arch "${ARCH}" ${LINK_FLAGS}
         SWIFT_CONFIG="release"
     fi
     
@@ -79,6 +113,19 @@ compile_arch() {
     
     # Copy Rust Binary
     cp "backend/target/${RUST_TARGET}/${RUST_CONFIG}/codetunner-backend" "${ARCH_BUILD_DIR}/codetunner-backend"
+
+    # 1.5 MicroCode CLI (Optional - may not exist)
+    if [ -d "../MicroCodeCLI" ]; then
+        echo "   💻 Compiling MicroCode CLI..."
+        cd ../MicroCodeCLI
+        swift build -c release --arch "${ARCH}" || true
+        if [ -f ".build/${ARCH}-apple-macosx/release/MicroCodeCLI" ]; then
+            cp ".build/${ARCH}-apple-macosx/release/MicroCodeCLI" "../codetunner-native/${ARCH_BUILD_DIR}/microcode-cli"
+        fi
+        cd ../codetunner-native
+    else
+        echo "   ⏩ MicroCode CLI not found, skipping..."
+    fi
 
     # 1.3 PreviewAgent (Skipped for now due to dependency issues)
     # PREVIEW_BIN=$(find PreviewAgent/.build -name "PreviewAgent" -type f | grep "${ARCH}" | grep "release" | head -n 1 || true)
@@ -150,10 +197,18 @@ EOF
     cp "${BUILD_ROOT}/${SOURCE_ARCH}/codetunner-backend" "${APP_BUNDLE}/Contents/MacOS/"
     chmod +x "${APP_BUNDLE}/Contents/MacOS/codetunner-backend"
     
+    if [ -f "${BUILD_ROOT}/${SOURCE_ARCH}/microcode-cli" ]; then
+        cp "${BUILD_ROOT}/${SOURCE_ARCH}/microcode-cli" "${APP_BUNDLE}/Contents/MacOS/"
+        chmod +x "${APP_BUNDLE}/Contents/MacOS/microcode-cli"
+    fi
+    
     # CRITICAL: Strip binaries to reduce size (from 200MB+ to ~30-50MB)
     echo "   ✂️  Stripping debug symbols..."
     strip -u -r "${APP_BUNDLE}/Contents/MacOS/CodeTunner"
     strip -u -r "${APP_BUNDLE}/Contents/MacOS/codetunner-backend"
+    if [ -f "${APP_BUNDLE}/Contents/MacOS/microcode-cli" ]; then
+        strip -u -r "${APP_BUNDLE}/Contents/MacOS/microcode-cli"
+    fi
 
     # PreviewAgent (if exists)
     # if [ -f "${BUILD_ROOT}/${SOURCE_ARCH}/PreviewAgent" ]; then

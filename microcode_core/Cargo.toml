@@ -1,0 +1,48 @@
+[package]
+name = "microcode_core"
+version = "0.1.0"
+edition = "2021"
+description = "MicroCode AI Core - Brain of the IDE"
+authors = ["Dotmini Software <dev@dotmini.app>"]
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+name = "microcode_core"
+
+[dependencies]
+# Async Runtime
+tokio = { version = "1.0", features = ["full", "sync", "process"] }
+
+# Swift/FFI Bridge
+uniffi = { version = "0.28", features = ["cli"] }
+
+# Terminal PTY
+portable-pty = "0.8"
+
+# Error Handling (Zero .unwrap() Policy)
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# File System
+walkdir = "2.5"
+ignore = "0.4"
+
+# Utilities
+uuid = { version = "1.10", features = ["v4"] }
+crossbeam-channel = "0.5"
+
+# Note: fastembed and lancedb removed for MVP due to version conflicts
+# Using simple in-memory embeddings instead
+
+[build-dependencies]
+uniffi = { version = "0.28", features = ["build"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

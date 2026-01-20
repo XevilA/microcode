@@ -54,8 +54,10 @@ struct PlaygroundView: View {
     @State private var cells: [PlaygroundCellModel] = [PlaygroundCellModel(code: "print('Hello from Cell 1')", colorTheme: .none)]
     @State private var executionTask: Task<Void, Never>?
     
-    // Catalogue Support
-    @State private var showCatalogue: Bool = false
+    // Document Mode Support
+    @State private var showDocumentMode: Bool = false
+    @State private var documentURL: URL?
+    @State private var isDocumentPiP: Bool = false
     
     // All languages supported by backend runner
     let supportedLanguages = [
@@ -82,15 +84,14 @@ struct PlaygroundView: View {
             Divider()
             
             // Main Content
-            // Main Content
             HSplitView {
-                if showCatalogue {
-                    CatalogueSidebar(onSelectItem: handleCatalogueItem)
-                        .transition(.move(edge: .leading))
-                    Divider()
+                // Document Mode (Left Column) - Resizable
+                if showDocumentMode && !isDocumentPiP {
+                    DocumentViewer(documentURL: $documentURL, isPiPActive: $isDocumentPiP)
+                        .frame(minWidth: 200, idealWidth: 350, maxWidth: 600)
                 }
                 
-                // Left Pane: Editor & Data
+                // Center Pane: Editor & Data
                 VStack(spacing: 0) {
                     if showDataFiles {
                         dataFilesPanel
@@ -104,14 +105,14 @@ struct PlaygroundView: View {
                         codeEditorPanel
                     }
                 }
-                .frame(minWidth: 400, maxWidth: .infinity, maxHeight: .infinity)
+                .frame(minWidth: 350, maxWidth: .infinity)
                 
                 // Right Pane: Output & Preview
                 if (showOutput || showGUIPreview) && !isCellMode {
                     VStack(spacing: 0) {
                         if showGUIPreview {
                             guiPreviewPanel
-                                .frame(minHeight: 200, maxHeight: .infinity)
+                                .frame(minHeight: 200)
                         }
                         
                         if showGUIPreview && showOutput {
@@ -123,7 +124,7 @@ struct PlaygroundView: View {
                                 .frame(minHeight: 100, maxHeight: showGUIPreview ? 300 : .infinity)
                         }
                     }
-                    .frame(minWidth: 300, maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(minWidth: 280, maxWidth: .infinity)
                 }
             }
         }
@@ -137,6 +138,15 @@ struct PlaygroundView: View {
             Task {
                 try? FileManager.default.createDirectory(at: playgroundDirectory, withIntermediateDirectories: true)
                 print("🚀 PlaygroundView: Verified directory at \(playgroundDirectory.path)")
+            }
+        }
+        .onChange(of: isDocumentPiP) { newValue in
+            if newValue && showDocumentMode {
+                PiPWindowManager.shared.show(documentURL: documentURL, onClose: {
+                    isDocumentPiP = false
+                })
+            } else {
+                PiPWindowManager.shared.close()
             }
         }
         .sheet(isPresented: $showingEnvManager) {
@@ -232,17 +242,17 @@ struct PlaygroundView: View {
             Divider()
                 .frame(height: 20)
             
-            // Catalogue Toggle
-            Toggle(isOn: $showCatalogue) {
+            // Document Mode Toggle
+            Toggle(isOn: $showDocumentMode) {
                 HStack(spacing: 4) {
-                    Image(systemName: "book.fill")
-                    Text("Catalogue")
+                    Image(systemName: "doc.text.fill")
+                    Text("Document Mode")
                 }
                 .font(.system(size: 12))
             }
             .toggleStyle(.button)
             .buttonStyle(.bordered)
-            .tint(showCatalogue ? .blue : .secondary)
+            .tint(showDocumentMode ? .blue : .secondary)
             
             Spacer()
             
@@ -542,14 +552,12 @@ struct PlaygroundView: View {
             
             Divider()
             
-            ScrollView {
-                Text(output.isEmpty ? "Output will appear here..." : output)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(output.isEmpty ? .secondary : Color(nsColor: appState.appTheme.editorText))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                    .textSelection(.enabled)
-            }
+            PlaygroundTerminalView(
+                text: $output,
+                fontSize: $appState.playgroundFontSize,
+                theme: appState.appTheme
+            )
+            .padding(4)
             .background(editorBackground)
         }
     }
@@ -1065,26 +1073,27 @@ struct PlaygroundView: View {
     // MARK: - Python Environment Menu
     
     private var pythonEnvMenu: some View {
-        Menu {
+        let state = appState
+        return Menu {
             // System Python Versions
             Text("System Python")
                 .font(.caption)
                 .foregroundColor(.secondary)
             
-            if appState.availablePythonVersions.isEmpty {
+            if state.availablePythonVersions.isEmpty {
                 Button("python3 (default)") {
-                    appState.selectedPythonVersion = "python3"
+                    state.selectedPythonVersion = "python3"
                     pythonEnvManager.activeEnvironment = nil
                 }
             } else {
-                ForEach(appState.availablePythonVersions) { version in
+                ForEach(state.availablePythonVersions) { version in
                     Button {
-                        appState.selectedPythonVersion = version.path
+                        state.selectedPythonVersion = version.path
                         pythonEnvManager.activeEnvironment = nil
                     } label: {
                         HStack {
                             Text(version.displayName)
-                            if appState.selectedPythonVersion == version.path {
+                            if state.selectedPythonVersion == version.path {
                                 Image(systemName: "checkmark")
                             }
                         }
@@ -1117,7 +1126,7 @@ struct PlaygroundView: View {
             Divider()
             
             Button("Refresh Versions") {
-                appState.detectPythonVersions()
+                state.detectPythonVersions()
             }
             
             Button("Manage Environments...") {
@@ -1136,7 +1145,7 @@ struct PlaygroundView: View {
             .cornerRadius(4)
         }
         .onAppear {
-            appState.detectPythonVersions()
+            state.detectPythonVersions()
         }
     }
     
@@ -1546,65 +1555,18 @@ struct PlaygroundView: View {
             // This ensures infinite loops and long running scripts stream output correctly
         }
         
-        // Backend Service Execution (Async)
+        // Local Execution (Fastest & Supports 20+ Languages)
+        // We use the new non-blocking async execution from AppState
         do {
-            // Backend Service Execution (Streaming)
-            var buffer = ""
-            var lastUpdate = Date()
+            let (stdout, stderr, code) = await appState.executeScript(code: code, language: language)
             
-            for try await event in BackendService.shared.streamExecuteCode(
-                code: code,
-                language: language
-            ) {
-                 if let stdout = event.Output {
-                     buffer += stdout
-                 }
-                 if let stderr = event.Error {
-                     // Clean NSLog for Obj-C
-                     if language == "objective-c" || language == "objective-cpp" {
-                         buffer += cleanNSLog(stderr)
-                     } else {
-                         buffer += stderr
-                     }
-                 }
-                 
-                 // Throttled UI Update (Max 10fps)
-                 if -lastUpdate.timeIntervalSinceNow > 0.1 {
-                     let chunk = buffer
-                     buffer = ""
-                     lastUpdate = Date()
-                     await MainActor.run {
-                         output += chunk
-                     }
-                 }
-                 
-                 if let code = event.Exit {
-                     // Flush before setting exit code
-                     if !buffer.isEmpty {
-                        let chunk = buffer
-                        buffer = ""
-                        await MainActor.run { output += chunk }
-                     }
-                     exitCode = code
-                 }
-            }
-            
-            // Final Flush
-            if !buffer.isEmpty {
-                let chunk = buffer
-                await MainActor.run { output += chunk }
-            }
-            
-            // Execution Finished
-            executionTime = Date().timeIntervalSince(startTime)
-            isExecuting = false
-        } catch {
             await MainActor.run {
-                if Task.isCancelled {
-                   // Ignore error if cancelled
-                } else {
-                   output = "Error: \(error.localizedDescription)"
+                output = stdout
+                if !stderr.isEmpty {
+                    output += "\n" + stderr
                 }
+                output += "\n\nExited with code \(code) in \(String(format: "%.2f", Date().timeIntervalSince(startTime)))s\n"
+                exitCode = Int(code)
                 isExecuting = false
             }
         }
@@ -2035,7 +1997,7 @@ struct PlaygroundView: View {
             do {
                 let result = try await BackendService.shared.executeCode(code: cell.code, language: language)
                 await MainActor.run {
-                    cell.output = result.stdout + result.stderr
+                    cell.output = cleanANSI(result.stdout + result.stderr)
                     cell.executionTime = Date().timeIntervalSince(startTime)
                     cell.isExecuting = false
                 }
@@ -2079,6 +2041,12 @@ struct PlaygroundView: View {
         }
     }
 
+    /// Strips ANSI escape sequences from text
+    private func cleanANSI(_ text: String) -> String {
+        let pattern = #"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])"#
+        return text.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+    }
+
     /// Strips NSLog metadata (timestamps, process IDs, etc) from stderr
     private func cleanNSLog(_ input: String) -> String {
         // Pattern: 2025-12-25 23:19:09.013 bin[6248:6488860] Hello, World!
@@ -2088,12 +2056,17 @@ struct PlaygroundView: View {
         let lines = input.components(separatedBy: .newlines)
         
         for (index, line) in lines.enumerated() {
+            var processedLine = line
+            
+            // Clean ANSI first
+            processedLine = cleanANSI(processedLine)
+            
             if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
-                let nsRange = NSRange(line.startIndex..<line.endIndex, in: line)
-                let stripped = regex.stringByReplacingMatches(in: line, options: [], range: nsRange, withTemplate: "$1")
+                let nsRange = NSRange(processedLine.startIndex..<processedLine.endIndex, in: processedLine)
+                let stripped = regex.stringByReplacingMatches(in: processedLine, options: [], range: nsRange, withTemplate: "$1")
                 cleaned += stripped
             } else {
-                cleaned += line
+                cleaned += processedLine
             }
             if index < lines.count - 1 {
                 cleaned += "\n"

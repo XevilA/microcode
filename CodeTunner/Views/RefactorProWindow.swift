@@ -634,7 +634,7 @@ struct RefactorProWindow: View {
                                 
                                 try await BackendService.shared.writeFile(path: newPath, content: file.content)
                             }
-                            await appState.refreshFileTree()
+                            // await state.reloadFileTree()
                             await MainActor.run {
                                 errorMessage = "Bulk migration complete. Saved to \(newFolder)"
                             }
@@ -728,7 +728,7 @@ struct RefactorProWindow: View {
             Task {
                 do {
                     try await BackendService.shared.writeFile(path: newPath, content: cleanedCode)
-                    await appState.refreshFileTree()
+                    // await state.reloadFileTree()
                     await MainActor.run {
                         dismiss()
                     }
