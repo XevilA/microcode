@@ -726,7 +726,8 @@ struct RemoteXView: View {
                     if appState.isRemoteProject {
                         Button(action: {
                             // Switch to Main Code View
-                            appState.toggleEditorMode(.code)
+                            let state: AppState = appState
+                            state.editorMode = EditorMode.code
                         }) {
                             Label("Open in Editor", systemImage: "macwindow.on.rectangle")
                         }
@@ -1486,7 +1487,7 @@ struct RemoteTerminalTab: View {
     var body: some View {
         ZStack {
             // Background Blur Effect
-            VisualEffectView(material: .underWindowBackground, blendingMode: .behindWindow)
+            VisualEffectView(material: NSVisualEffectView.Material.underWindowBackground, blendingMode: NSVisualEffectView.BlendingMode.behindWindow)
                 .ignoresSafeArea()
             
             // Tint Overlay for "Semi-Transparent" feel
@@ -1517,23 +1518,7 @@ struct RemoteTerminalTab: View {
     }
 }
 
-struct VisualEffectView: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-    let blendingMode: NSVisualEffectView.BlendingMode
-    
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-        return view
-    }
-    
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
-        nsView.material = material
-        nsView.blendingMode = blendingMode
-    }
-}
+
 
 // MARK: - Remote Files Tab
 
@@ -1570,317 +1555,338 @@ struct RemoteFilesTab: View {
     var body: some View {
         CompatHSplitView {
             // LEFT: Local
-            VStack(spacing: 0) {
-                // Header
-                HStack {
-                    Image(systemName: "macmini")
-                    Text("Local")
-                        .font(.headline)
-                    Spacer()
-                    Button(action: headerUpLocal) { Image(systemName: "arrow.up") }
-                }
-                .padding(8)
-                .background(Color.compat(nsColor: .controlBackgroundColor))
-                
-                // Path
-                Text(localPath.path)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(4)
-                
-                Divider()
-                
-                // List
-                List {
-                    ForEach(localFiles) { file in
-                        HStack {
-                            Image(systemName: file.isDirectory ? "folder.fill" : "doc")
-                                .foregroundColor(file.isDirectory ? .blue : .secondary)
-                            Text(file.name)
-                            Spacer()
-                            if !file.isDirectory {
-                                Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture(count: 2) {
-                            if file.isDirectory {
-                                navigateLocal(to: file.url)
-                            } else {
-                                // Local Open?
-                                NSWorkspace.shared.open(file.url)
-                            }
-                        }
-                        .contextMenu {
-                            Button("Upload to Remote") {
-                                Task {
-                                    await manager.uploadFile(localPath: file.url, remotePath: manager.currentPath)
-                                }
-                            }
-                            Button("Reveal in Finder") {
-                                NSWorkspace.shared.activateFileViewerSelecting([file.url])
-                            }
-                        }
-                    }
-                }
-                .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-                    for provider in providers {
-                        provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { (item, error) in
-                            if let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
-                                Task { await manager.uploadFile(localPath: url, remotePath: manager.currentPath) }
-                            }
-                        }
-                    }
-                    return true
-                }
-            }
-            .frame(minWidth: 200)
+            localPane
             
             // RIGHT: Remote
-            VStack(spacing: 0) {
-                // Header
-                HStack {
-                    Image(systemName: "server.rack")
-                    Text("Remote")
-                        .font(.headline)
-                    Spacer()
-                    Button(action: { showingOpenWorkspaceAlert = true }) { 
-                        Image(systemName: "folder.badge.gearshape")
-                        Text("Workspace")
-                    }
-                    .help("Open current directory as workspace")
-                    
-                    Button(action: { showingNewProjectAlert = true }) {
-                        Image(systemName: "plus.app.fill")
-                        Text("New Project")
-                    }
-                    .help("Create new project folder and open")
-                    Button(action: { showingNewFolderAlert = true }) { Image(systemName: "folder.badge.plus") }
-                    Button(action: { showingNewFileAlert = true }) { Image(systemName: "doc.badge.plus") }
-                    
-                    Button(action: { autoRefreshEnabled.toggle() }) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .foregroundColor(autoRefreshEnabled ? .accentColor : .secondary)
-                    }
-                    .help(autoRefreshEnabled ? "Auto-refresh on (5s)" : "Auto-refresh off")
-                    
-                    Button(action: headerUpRemote) { Image(systemName: "arrow.up") }
-                    Button(action: { refreshRemote() }) { Image(systemName: "arrow.clockwise") }
-                }
-                .padding(8)
-                .background(Color.compat(nsColor: .controlBackgroundColor))
-                
-                // Path
-                TextField("Remote Path", text: $remotePathInput)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit {
-                        Task { await manager.listFiles(at: remotePathInput) }
-                    }
-                    .padding(4)
-                
-                Divider()
-                
-                // Content
-                if manager.isLoadingFiles {
-                    VStack {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text("Loading...")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if manager.remoteFiles.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "folder.badge.questionmark")
-                            .font(.system(size: 32))
-                            .foregroundColor(.secondary.opacity(0.5))
-                        Text("Empty Directory")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        Text(manager.lastError ?? "No files found at this path")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        Button("Refresh") {
-                            refreshRemote()
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List {
-                    ForEach(manager.remoteFiles, id: \.name) { file in
-                        HStack {
-                            Image(systemName: file.isDirectory ? "folder.fill" : "doc")
-                                .foregroundColor(file.isDirectory ? .blue : .secondary)
-                            Text(file.name)
-                            Spacer()
-                            Text(file.isDirectory ? "Dir" : ByteCountFormatter.string(fromByteCount: Int64(file.size), countStyle: .file))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture(count: 2) {
-                            if file.isDirectory {
-                                let newPath = manager.currentPath.hasSuffix("/") ? manager.currentPath + file.name : manager.currentPath + "/" + file.name
-                                Task { await manager.listFiles(at: newPath) }
-                            } else {
-                                // Open Remote File
-                                Task {
-                                    let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("CodeTunnerRemote/\(manager.currentConnection?.id.uuidString ?? "unknown")")
-                                    try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-                                    
-                                    if let localURL = await manager.downloadFile(remotePath: file.path, localDir: tempDir) {
-                                        let codeExts = ["swift", "py", "rs", "js", "ts", "c", "cpp", "h", "java", "kt", "html", "css", "json", "md", "txt", "sh", "yml", "xml", "go", "php", "rb", "sql"]
-                                        if codeExts.contains(localURL.pathExtension.lowercased()) {
-                                            if let serverId = manager.currentConnection?.id {
-                                                appState.remoteWorkspaceManager.registerTempFile(localURL: localURL, remotePath: file.path, serverId: serverId)
-                                            }
-                                            await appState.loadFile(url: localURL)
-                                            await MainActor.run { appState.toggleEditorMode(.code) }
-                                        } else {
-                                            NSWorkspace.shared.open(localURL)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .contextMenu {
-                            if file.isDirectory {
-                                Button("Open as Workspace") {
-                                    Task { await openRemoteWorkspace(path: file.path) }
-                                }
-                                Divider()
-                            }
-                            Button("Download to Local") {
-                                Task {
-                                    _ = await manager.downloadFile(remotePath: file.path, localDir: localPath)
-                                    loadLocalFiles() // Refresh local
-                                }
-                            }
-                            Button("Rename") {
-                                itemToRename = file.name
-                                newNameInput = file.name
-                                showingRenameAlert = true
-                            }
-                            Button("Delete", role: .destructive) {
-                                itemToDelete = file
-                                showingDeleteConfirm = true
-                            }
-                            Divider()
-                            Button("Copy Path") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(file.path, forType: .string)
-                            }
-                        }
-                    }
-                }
+            remotePane
+        }
+    }
+    
+    // MARK: - Local Pane
+    
+    private var localPane: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Image(systemName: "macmini")
+                Text("Local")
+                    .font(.headline)
+                Spacer()
+                Button(action: headerUpLocal) { Image(systemName: "arrow.up") }
             }
+            .padding(8)
+            .background(Color.compat(nsColor: .controlBackgroundColor))
+            
+            // Path
+            Text(localPath.path)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(4)
+            
+            Divider()
+            
+            // List
+            List {
+                ForEach(localFiles) { file in
+                    localFileRow(file)
+                }
             }
             .onDrop(of: [.fileURL], isTargeted: nil) { providers in
                 for provider in providers {
                     provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { (item, error) in
-                         if let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
-                             Task { await manager.uploadFile(localPath: url, remotePath: manager.currentPath) }
-                         }
+                        if let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
+                            Task { await manager.uploadFile(localPath: url, remotePath: manager.currentPath) }
+                        }
                     }
                 }
                 return true
             }
-            .frame(minWidth: 200)
-            .alert("New Folder", isPresented: $showingNewFolderAlert) {
-                TextField("Folder Name", text: $newNameInput)
-                Button("Create") {
-                    let path = manager.currentPath.hasSuffix("/") ? manager.currentPath + newNameInput : manager.currentPath + "/" + newNameInput
-                    Task { await manager.mkdir(path: path) }
-                    newNameInput = ""
-                }
-                Button("Cancel", role: .cancel) { newNameInput = "" }
-            }
-            .alert("New File", isPresented: $showingNewFileAlert) {
-                TextField("File Name", text: $newNameInput)
-                Button("Create") {
-                    let path = manager.currentPath.hasSuffix("/") ? manager.currentPath + newNameInput : manager.currentPath + "/" + newNameInput
-                    Task { await manager.uploadFile(localPath: URL(fileURLWithPath: "/dev/null"), remotePath: manager.currentPath) // Dummy empty file
-                           // Actually, let's just use upload with empty data
-                           let serverId = manager.currentConnection?.id.uuidString ?? ""
-                           try? await BackendService.shared.uploadRemoteFile(id: serverId, path: path, content: Data())
-                           await manager.listFiles(at: manager.currentPath)
-                    }
-                    newNameInput = ""
-                }
-                Button("Cancel", role: .cancel) { newNameInput = "" }
-            }
-            .alert("New Project", isPresented: $showingNewProjectAlert) {
-                TextField("Project Name", text: $newNameInput)
-                Button("Create & Open") {
-                    let path = manager.currentPath.hasSuffix("/") ? manager.currentPath + newNameInput : manager.currentPath + "/" + newNameInput
-                    Task {
-                        // 1. Create Dir
-                        await manager.mkdir(path: path)
-                        // 2. Open Workspace
-                        await openRemoteWorkspace(path: path)
-                    }
-                    newNameInput = ""
-                }
-                Button("Cancel", role: .cancel) { newNameInput = "" }
-            }
-            .alert("Rename Item", isPresented: $showingRenameAlert) {
-                TextField("New Name", text: $newNameInput)
-                Button("Rename") {
-                    if let oldName = itemToRename {
-                        let source = manager.currentPath.hasSuffix("/") ? manager.currentPath + oldName : manager.currentPath + "/" + oldName
-                        let dest = manager.currentPath.hasSuffix("/") ? manager.currentPath + newNameInput : manager.currentPath + "/" + newNameInput
-                        Task { await manager.rename(source: source, destination: dest) }
-                    }
-                    newNameInput = ""
-                    itemToRename = nil
-                }
-                Button("Cancel", role: .cancel) { 
-                    newNameInput = ""
-                    itemToRename = nil
-                }
-            }
-            .alert("Delete Item", isPresented: $showingDeleteConfirm) {
-                Button("Delete", role: .destructive) {
-                    if let file = itemToDelete {
-                        Task { await manager.remove(path: file.path, isDirectory: file.isDirectory) }
-                    }
-                    itemToDelete = nil
-                }
-                Button("Cancel", role: .cancel) { itemToDelete = nil }
-            } message: {
-                Text("Are you sure you want to delete '\(itemToDelete?.name ?? "")'?")
-            }
-            .alert("Open as Workspace", isPresented: $showingOpenWorkspaceAlert) {
-                Button("Open") {
-                    Task { await openRemoteWorkspace(path: manager.currentPath) }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Open '\(manager.currentPath)' as a workspace?\n\nFiles will be downloaded and cached locally. Changes will sync automatically.")
+        }
+    }
+    
+    private func localFileRow(_ file: LocalFile) -> some View {
+        HStack {
+            Image(systemName: file.isDirectory ? "folder.fill" : "doc")
+                .foregroundColor(file.isDirectory ? .blue : .secondary)
+            Text(file.name)
+            Spacer()
+            if !file.isDirectory {
+                Text(ByteCountFormatter.string(fromByteCount: file.size, countStyle: .file))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
-        .onReceive(Timer.publish(every: 5, on: .main, in: .common).autoconnect()) { _ in
-            if autoRefreshEnabled && !manager.isLoadingFiles {
-                refreshRemote()
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            if file.isDirectory {
+                navigateLocal(to: file.url)
+            } else {
+                NSWorkspace.shared.open(file.url)
             }
         }
-        .onAppear {
-            loadLocalFiles()
-            remotePathInput = manager.currentPath
-            if manager.remoteFiles.isEmpty {
-                refreshRemote()
+        .contextMenu {
+            Button("Upload to Remote") {
+                Task { await manager.uploadFile(localPath: file.url, remotePath: manager.currentPath) }
+            }
+            Button("Reveal in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([file.url])
             }
         }
-        .onChange(of: manager.currentPath) { newPath in
-            remotePathInput = newPath
+    }
+    // MARK: - Remote Pane
+    
+    private var remotePane: some View {
+        VStack(spacing: 0) {
+            remoteHeader
+            remotePathEntry
+            Divider()
+            remoteFileList
         }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            for provider in providers {
+                provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { (item, error) in
+                     if let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
+                         Task { await manager.uploadFile(localPath: url, remotePath: manager.currentPath) }
+                     }
+                }
+            }
+            return true
+        }
+        .frame(minWidth: 200)
+        .alert("New Folder", isPresented: $showingNewFolderAlert) {
+            TextField("Folder Name", text: $newNameInput)
+            Button("Create") {
+                let path = manager.currentPath.hasSuffix("/") ? manager.currentPath + newNameInput : manager.currentPath + "/" + newNameInput
+                Task { await manager.mkdir(path: path) }
+                newNameInput = ""
+            }
+            Button("Cancel", role: .cancel) { newNameInput = "" }
+        }
+        .alert("New File", isPresented: $showingNewFileAlert) {
+            TextField("File Name", text: $newNameInput)
+            Button("Create") {
+                let path = manager.currentPath.hasSuffix("/") ? manager.currentPath + newNameInput : manager.currentPath + "/" + newNameInput
+                Task { await manager.uploadFile(localPath: URL(fileURLWithPath: "/dev/null"), remotePath: manager.currentPath)
+                       let serverId = manager.currentConnection?.id.uuidString ?? ""
+                       try? await BackendService.shared.uploadRemoteFile(id: serverId, path: path, content: Data())
+                       await manager.listFiles(at: manager.currentPath)
+                }
+                newNameInput = ""
+            }
+            Button("Cancel", role: .cancel) { newNameInput = "" }
+        }
+        .alert("New Project", isPresented: $showingNewProjectAlert) {
+            TextField("Project Name", text: $newNameInput)
+            Button("Create & Open") {
+                let path = manager.currentPath.hasSuffix("/") ? manager.currentPath + newNameInput : manager.currentPath + "/" + newNameInput
+                Task {
+                    await manager.mkdir(path: path)
+                    await openRemoteWorkspace(path: path)
+                }
+                newNameInput = ""
+            }
+            Button("Cancel", role: .cancel) { newNameInput = "" }
+        }
+        .alert("Rename Item", isPresented: $showingRenameAlert) {
+            TextField("New Name", text: $newNameInput)
+            Button("Rename") {
+                if let oldName = itemToRename {
+                    let source = manager.currentPath.hasSuffix("/") ? manager.currentPath + oldName : manager.currentPath + "/" + oldName
+                    let dest = manager.currentPath.hasSuffix("/") ? manager.currentPath + newNameInput : manager.currentPath + "/" + newNameInput
+                    Task { await manager.rename(source: source, destination: dest) }
+                }
+                newNameInput = ""
+                itemToRename = nil
+            }
+            Button("Cancel", role: .cancel) { 
+                newNameInput = ""
+                itemToRename = nil
+            }
+        }
+        .alert("Delete Item", isPresented: $showingDeleteConfirm) {
+            Button("Delete", role: .destructive) {
+                if let file = itemToDelete {
+                    Task { await manager.remove(path: file.path, isDirectory: file.isDirectory) }
+                }
+                itemToDelete = nil
+            }
+            Button("Cancel", role: .cancel) { itemToDelete = nil }
+        } message: {
+            Text("Are you sure you want to delete '\(itemToDelete?.name ?? "")'?")
+        }
+        .alert("Open as Workspace", isPresented: $showingOpenWorkspaceAlert) {
+            Button("Open") {
+                Task { await openRemoteWorkspace(path: manager.currentPath) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Open '\(manager.currentPath)' as a workspace?\n\nFiles will be downloaded and cached locally. Changes will sync automatically.")
+        }
+    }
+    
+    private var remoteHeader: some View {
+        HStack {
+            Image(systemName: "server.rack")
+            Text("Remote")
+                .font(.headline)
+            Spacer()
+            Button(action: { showingOpenWorkspaceAlert = true }) { 
+                Image(systemName: "folder.badge.gearshape")
+                Text("Workspace")
+            }
+            .help("Open current directory as workspace")
+            
+            Button(action: { showingNewProjectAlert = true }) {
+                Image(systemName: "plus.app.fill")
+                Text("New Project")
+            }
+            .help("Create new project folder and open")
+            Button(action: { showingNewFolderAlert = true }) { Image(systemName: "folder.badge.plus") }
+            Button(action: { showingNewFileAlert = true }) { Image(systemName: "doc.badge.plus") }
+            
+            Button(action: { autoRefreshEnabled.toggle() }) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .foregroundColor(autoRefreshEnabled ? .accentColor : .secondary)
+            }
+            .help(autoRefreshEnabled ? "Auto-refresh on (5s)" : "Auto-refresh off")
+            
+            Button(action: headerUpRemote) { Image(systemName: "arrow.up") }
+            Button(action: { refreshRemote() }) { Image(systemName: "arrow.clockwise") }
+        }
+        .padding(8)
+        .background(Color.compat(nsColor: .controlBackgroundColor))
+    }
+    
+    private var remotePathEntry: some View {
+        TextField("Remote Path", text: $remotePathInput)
+            .textFieldStyle(.roundedBorder)
+            .onSubmit {
+                Task { await manager.listFiles(at: remotePathInput) }
+            }
+            .padding(4)
+    }
+    
+    private var remoteFileList: some View {
+        Group {
+            if manager.isLoadingFiles {
+                VStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Loading...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if manager.remoteFiles.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "folder.badge.questionmark")
+                        .font(.system(size: 32))
+                        .foregroundColor(.secondary.opacity(0.5))
+                    Text("Empty Directory")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    Text(manager.lastError ?? "No files found at this path")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                    Button("Refresh") {
+                        refreshRemote()
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(manager.remoteFiles, id: \.name) { file in
+                        remoteFileRow(file)
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Remote File Row
+    
+    private func remoteFileRow(_ file: FileInfo) -> some View {
+        HStack {
+            Image(systemName: file.isDirectory ? "folder.fill" : "doc")
+                .foregroundColor(file.isDirectory ? .blue : .secondary)
+            Text(file.name)
+            Spacer()
+            Text(file.isDirectory ? "Dir" : ByteCountFormatter.string(fromByteCount: Int64(file.size), countStyle: .file))
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            if file.isDirectory {
+                let newPath = manager.currentPath.hasSuffix("/") ? manager.currentPath + file.name : manager.currentPath + "/" + file.name
+                Task { await manager.listFiles(at: newPath) }
+            } else {
+                // Open Remote File
+                Task {
+                    let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("CodeTunnerRemote/\(manager.currentConnection?.id.uuidString ?? "unknown")")
+                    try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+                    
+                    if let localURL = await manager.downloadFile(remotePath: file.path, localDir: tempDir) {
+                        let codeExts = ["swift", "py", "rs", "js", "ts", "c", "cpp", "h", "java", "kt", "html", "css", "json", "md", "txt", "sh", "yml", "xml", "go", "php", "rb", "sql"]
+                        if codeExts.contains(localURL.pathExtension.lowercased()) {
+                            if let serverId = manager.currentConnection?.id {
+                                appState.remoteWorkspaceManager.registerTempFile(localURL: localURL, remotePath: file.path, serverId: serverId)
+                            }
+                            await appState.loadFile(url: localURL)
+                            await MainActor.run { 
+                                let state: AppState = appState
+                                state.editorMode = EditorMode.code 
+                            }
+                        } else {
+                            NSWorkspace.shared.open(localURL)
+                        }
+                    }
+                }
+            }
+        }
+        .contextMenu {
+            if file.isDirectory {
+                Button("Open as Workspace") {
+                    Task { await openRemoteWorkspace(path: file.path) }
+                }
+                Divider()
+            }
+            Button("Download to Local") {
+                Task {
+                    _ = await manager.downloadFile(remotePath: file.path, localDir: localPath)
+                    loadLocalFiles() // Refresh local
+                }
+            }
+            Button("Rename") {
+                itemToRename = file.name
+                newNameInput = file.name
+                showingRenameAlert = true
+            }
+            Button("Delete", role: .destructive) {
+                itemToDelete = file
+                showingDeleteConfirm = true
+            }
+            Divider()
+            Button("Copy Path") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(file.path, forType: .string)
+            }
+        }
+    }
+    
+    // MARK: - Auto Refresh Effect
+    
+    private var autoRefreshEffect: some View {
+        EmptyView()
+            .onReceive(Timer.publish(every: 5, on: .main, in: .common).autoconnect()) { _ in
+                if autoRefreshEnabled && !manager.isLoadingFiles {
+                    refreshRemote()
+                }
+            }
     }
     
     // MARK: - Local Helpers
@@ -1955,7 +1961,6 @@ struct RemoteFilesTab: View {
         }
     }
 }
-
 // MARK: - Server Info Tab
 
 struct ServerInfoTab: View {

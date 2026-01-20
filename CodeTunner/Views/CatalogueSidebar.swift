@@ -57,6 +57,7 @@ struct CatalogueSidebar: View {
             HStack {
                 Text("Catalogue")
                     .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.primary)
                 Spacer()
                 
                 Picker("", selection: $selectedTab) {
@@ -67,25 +68,34 @@ struct CatalogueSidebar: View {
                 .frame(width: 140)
             }
             .padding(12)
-            .background(.ultraThinMaterial)
+            .background(
+                Rectangle()
+                    .fill(Color(nsColor: .windowBackgroundColor).opacity(0.3))
+            )
             
             Divider()
             
             // Search
-            HStack {
+            HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
-                TextField("Search templates...", text: $searchText)
+                    .font(.system(size: 12))
+                TextField("Search...", text: $searchText)
                     .textFieldStyle(.plain)
+                    .font(.system(size: 13))
             }
             .padding(8)
-            .background(Color.secondary.opacity(0.1))
+            .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
             .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
             .padding(10)
             
             // Items List
             ScrollView {
-                LazyVStack(spacing: 8) {
+                LazyVStack(spacing: 12) {
                     ForEach(filteredItems) { item in
                         CatalogueCard(item: item, isHovering: hoveringId == item.id) {
                             onSelectItem(item.code)
@@ -100,8 +110,13 @@ struct CatalogueSidebar: View {
                 .padding(10)
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor).opacity(0.8))
-        .frame(minWidth: 250, maxWidth: 350)
+        .background(
+            ZStack {
+                VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
+                Color(nsColor: .windowBackgroundColor).opacity(0.2) // Tint
+            }
+        )
+        .frame(minWidth: 260, maxWidth: 350)
     }
 }
 
@@ -115,17 +130,17 @@ struct CatalogueCard: View {
             HStack(alignment: .top, spacing: 12) {
                 // Icon Box
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: 12)
                         .fill(accentGradient(for: item.category))
-                        .shadow(color: accentColor(for: item.category).opacity(0.3), radius: 4, x: 0, y: 2)
-                        .frame(width: 36, height: 36)
+                        .shadow(color: accentColor(for: item.category).opacity(0.4), radius: 8, x: 0, y: 4)
+                        .frame(width: 40, height: 40)
                     
                     Image(systemName: item.icon)
                         .foregroundColor(.white)
-                        .font(.system(size: 16))
+                        .font(.system(size: 18, weight: .semibold))
                 }
                 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     HStack {
                         Text(item.name)
                             .font(.system(size: 13, weight: .semibold))
@@ -143,23 +158,39 @@ struct CatalogueCard: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                     
-                    Text(item.category.uppercased())
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.secondary.opacity(0.7))
-                        .padding(.top, 2)
+                    HStack(spacing: 4) {
+                        Text(item.category.uppercased())
+                            .font(.system(size: 8, weight: .bold))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(accentColor(for: item.category).opacity(0.1))
+                            .cornerRadius(4)
+                            .foregroundColor(accentColor(for: item.category))
+                    }
+                    .padding(.top, 4)
                 }
             }
             .padding(12)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(nsColor: .controlBackgroundColor))
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(nsColor: .controlBackgroundColor).opacity(isHovering ? 0.8 : 0.4))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(isHovering ? accentColor(for: item.category).opacity(0.5) : Color.clear, lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        .white.opacity(isHovering ? 0.3 : 0.1),
+                                        .white.opacity(isHovering ? 0.1 : 0.05)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
                     )
             )
-            .shadow(color: Color.black.opacity(isHovering ? 0.1 : 0.05), radius: isHovering ? 4 : 2, y: isHovering ? 2 : 1)
-            .scaleEffect(isHovering ? 1.01 : 1.0)
+            .shadow(color: Color.black.opacity(isHovering ? 0.2 : 0.1), radius: isHovering ? 10 : 4, y: isHovering ? 4 : 2)
+            .scaleEffect(isHovering ? 1.02 : 1.0)
         }
         .buttonStyle(.plain)
     }
@@ -179,6 +210,6 @@ struct CatalogueCard: View {
     
     private func accentGradient(for category: String) -> LinearGradient {
         let color = accentColor(for: category)
-        return LinearGradient(colors: [color, color.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        return LinearGradient(colors: [color.opacity(0.9), color], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 }

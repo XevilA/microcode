@@ -262,6 +262,24 @@ impl AIProvider for GeminiProvider {
                 name: "Gemini 1.5 Pro".to_string(),
                 provider: "gemini".to_string(),
                 context_length: 1048576,
+            },
+            AIModel {
+                id: "gemma-3n-it".to_string(),
+                name: "Gemma 3n".to_string(),
+                provider: "gemini".to_string(),
+                context_length: 8192,
+            },
+            AIModel {
+                id: "gemma-2-9b-it".to_string(),
+                name: "Gemma 2 9B".to_string(),
+                provider: "gemini".to_string(),
+                context_length: 8192,
+            },
+            AIModel {
+                id: "gemma-2-27b-it".to_string(),
+                name: "Gemma 2 27B".to_string(),
+                provider: "gemini".to_string(),
+                context_length: 8192,
             }
         ]
     }

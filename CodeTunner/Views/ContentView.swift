@@ -389,15 +389,17 @@ struct MainToolbar: View {
                 }
                 .help("Project & Task Manager")
                 
-                // Embedded Tools (Replaces IDX Cloud Login)
-                ToolbarButton(icon: "cpu.fill", color: .orange) {
-                    appState.showingEmbeddedTools = true
+                // Embedded Studio (Full Window Mode)
+                ToolbarButton(icon: "cpu.fill", isActive: appState.editorMode == .embedded, color: .orange) {
+                    appState.toggleEditorMode(.embedded)
                 }
-                .help("Embedded Project Tools")
-                .popover(isPresented: $appState.showingEmbeddedTools) {
-                    EmbeddedStudioView()
-                        .frame(minWidth: 900, minHeight: 600)
+                .help("Embedded Studio")
+                
+                // AI Agent Mode (Full Screen)
+                ToolbarButton(icon: "brain.head.profile", isActive: appState.editorMode == .aiAgent, color: .purple) {
+                    appState.toggleEditorMode(.aiAgent)
                 }
+                .help("AI Agent Mode")
                 
                 Divider().frame(height: 16).padding(.horizontal, 6)
                 
@@ -780,6 +782,12 @@ struct EditorArea: View {
                 RemoteXView()
             case .design:
                 DesignWorkbenchView()
+            case .embedded:
+                EmbeddedStudioView()
+                    .environmentObject(appState)
+            case .aiAgent:
+                AIAgentView()
+                    .environmentObject(appState)
             case .code:
                 VStack(spacing: 0) {
                     if !appState.openFiles.isEmpty {
@@ -3241,6 +3249,12 @@ struct SettingsView: View {
                             Section("Gemini 1.5") {
                                 Text("Gemini 1.5 Pro").tag("gemini-1.5-pro")
                                 Text("Gemini 1.5 Flash").tag("gemini-1.5-flash")
+                            }
+                            Section("Gemma (Open Models)") {
+                                Text("Gemma 3n (New)").tag("gemma-3n-it")
+                                Text("Gemma 2 2B").tag("gemma-2-2b-it")
+                                Text("Gemma 2 9B").tag("gemma-2-9b-it")
+                                Text("Gemma 2 27B").tag("gemma-2-27b-it")
                             }
                         } else if selectedProvider == "openai" {
                             Text("GPT-4o").tag("gpt-4o")

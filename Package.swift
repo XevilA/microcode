@@ -27,7 +27,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "CodeTunner",
-            dependencies: ["CodeTunnerSupport", "CodeTunnerKernel", "SwiftTerm"],
+            dependencies: ["CodeTunnerSupport", "CodeTunnerKernel", "SwiftTerm", "MicrocodeCoreSupport"],
             path: "CodeTunner",
             exclude: [
                 "Views/Design/DesignModeView.swift",
@@ -56,6 +56,7 @@ let package = Package(
                 "Views/ExportWindow.swift",
                 "Views/PlaygroundView.swift",
                 "Views/PlaygroundCellView.swift",
+                "Views/DocumentViewer.swift",
                 "Views/CatalogueSidebar.swift",
                 "Views/SyntaxHighlighter.swift",
                 "Views/StatusBarView.swift",
@@ -143,9 +144,12 @@ let package = Package(
                 "Services/DataFrameService.swift",
                 "Services/APIClientService.swift",
                 "Services/CICDService.swift",
+                "Services/MicroCore/MicroCore.swift", // AI Core Bridge
+                "Services/MicroCodeService.swift",    // AI Core Service Wrapper
                 "Views/HealerSuggestionView.swift",
                 "Views/UniversalPreviewView.swift",
                 "Views/Components/UniversalFilePreview.swift",
+                "Views/Components/VisualEffectView.swift",
                 "Views/Components/DeviceFrameView.swift",
                 "Views/Components/SnowEffectView.swift",
                 "Views/Components/ThemePickerView.swift",
@@ -159,6 +163,7 @@ let package = Package(
                 "Views/CICDPipelineView.swift",
                 "Views/TerminalTextView.swift",
                 "Views/TerminalWebView.swift",
+                "Views/Components/PlaygroundTerminalView.swift",
                 "Views/Components/TransparentTerminalView.swift",
                 "Views/DataFrameView.swift",
                 "Kernel/KernelClient.swift",
@@ -190,6 +195,12 @@ let package = Package(
             resources: [
                 // .process("Views/Metal/Shaders.metal")
             ]
+        ),
+        .target(
+            name: "MicrocodeCoreSupport",
+            dependencies: [],
+            path: "MicrocodeCoreSupport",
+            publicHeadersPath: "include"
         )
     ]
 )
