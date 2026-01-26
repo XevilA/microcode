@@ -712,6 +712,9 @@ class AppState: ObservableObject {
     @Published var cellFontSize: CGFloat = 13.0
     @Published var cellFontWeight: Int = 2 // Regular
     @Published var selectedLanguage: String = "python"
+    
+    // AI Code Export - used to pass code from AI Agent to Playground/Notebook
+    @Published var aiExportedCode: String? = nil
 
     @Published var showingRefactorDialog: Bool = false
     @Published var showingRefactorProWindow: Bool = false
@@ -870,6 +873,44 @@ class AppState: ObservableObject {
                 if theme == .wwdc || theme == .keynote || theme == .wwdcLight || theme == .keynoteLight {
                     self.fontSize = 24
                     self.fontFamily = "SF Mono"
+                }
+            }
+            .store(in: &cancellables)
+        
+        // AI Code Export Handlers
+        // NOTE: Code is passed via aiExportedCode property for views to consume
+        NotificationCenter.default.publisher(for: Notification.Name("OpenInPlayground"))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                guard let self = self else { return }
+                let code = notification.userInfo?["code"] as? String ?? ""
+                let language = notification.userInfo?["language"] as? String ?? "python"
+                self.aiExportedCode = code
+                self.selectedLanguage = language.isEmpty ? "python" : language.lowercased()
+                self.toggleEditorMode(.playground)
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: Notification.Name("OpenInCellMode"))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                guard let self = self else { return }
+                let code = notification.userInfo?["code"] as? String ?? ""
+                let language = notification.userInfo?["language"] as? String ?? "python"
+                self.aiExportedCode = code
+                self.selectedLanguage = language.isEmpty ? "python" : language.lowercased()
+                // Navigate to Notebook mode (Cell Mode)
+                self.toggleEditorMode(.notebook)
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: Notification.Name("OpenFileInEditor"))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                guard let self = self,
+                      let url = notification.userInfo?["url"] as? URL else { return }
+                Task { @MainActor in
+                    await self.loadFile(url: url)
                 }
             }
             .store(in: &cancellables)

@@ -1503,6 +1503,17 @@ struct NotebookView: View {
             }
             // Sync Python version with appState
             viewModel.selectedPythonPath = appState.selectedPythonVersion
+            
+            // Check if code was exported from AI Agent
+            if let exportedCode = appState.aiExportedCode, !exportedCode.isEmpty {
+                // Add a new cell with the exported code
+                viewModel.addCell(type: .code, language: .python)
+                if let lastCell = viewModel.activeNotebook?.cells.last {
+                    lastCell.content = exportedCode
+                }
+                appState.aiExportedCode = nil // Clear after consuming
+                print("🚀 NotebookView: Loaded code from AI Agent into new cell")
+            }
         }
     }
     

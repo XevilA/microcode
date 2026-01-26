@@ -144,6 +144,8 @@ let package = Package(
                 "Services/DataFrameService.swift",
                 "Services/APIClientService.swift",
                 "Services/CICDService.swift",
+                "Services/AgentService.swift",        // Restored Agent Core
+                "Services/AIClient.swift",            // Direct AI API Client
                 "Services/MicroCore/MicroCore.swift", // AI Core Bridge
                 "Services/MicroCodeService.swift",    // AI Core Service Wrapper
                 "Views/HealerSuggestionView.swift",

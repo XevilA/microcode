@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct DesignModeView: View {
+    @EnvironmentObject var appState: AppState
     @StateObject private var designStore = DesignStore()
     
     var body: some View {
@@ -33,6 +34,6 @@ struct DesignModeView: View {
             }
         }
         .environmentObject(designStore)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(appState.appTheme == .transparent || appState.appTheme == .extraClear ? Color.clear : Color(nsColor: .windowBackgroundColor))
     }
 }
