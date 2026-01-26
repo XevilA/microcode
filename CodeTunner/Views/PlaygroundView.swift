@@ -130,8 +130,19 @@ struct PlaygroundView: View {
         }
         .onAppear {
             print("🚀 PlaygroundView: onAppear triggered")
-            if code == "print('Hello, Playground!')" {
+            
+            // Check if code was exported from AI Agent
+            if let exportedCode = appState.aiExportedCode, !exportedCode.isEmpty {
+                code = exportedCode
+                appState.aiExportedCode = nil // Clear after consuming
+                print("🚀 PlaygroundView: Loaded code from AI Agent")
+            } else if code == "print('Hello, Playground!')" {
                 updateDefaultCode(for: language)
+            }
+            
+            // Sync language from AppState
+            if !appState.selectedLanguage.isEmpty && appState.selectedLanguage != language {
+                language = appState.selectedLanguage
             }
             
             // Ensure directory exists asynchronously

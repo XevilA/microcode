@@ -299,10 +299,10 @@ struct MainToolbar: View {
                 }
                 .help("Format Code (⌘⇧F)")
                 
-                ToolbarButton(icon: "bubble.left.and.bubble.right.fill", isActive: appState.aiChatVisible, color: appState.aiChatVisible ? .accentColor : .primary) {
-                    appState.toggleAIChat()
+                ToolbarButton(icon: "brain.head.profile", isActive: appState.editorMode == .aiAgent, color: appState.editorMode == .aiAgent ? .purple : .primary) {
+                    appState.toggleEditorMode(.aiAgent)
                 }
-                .help("AI Chat")
+                .help("MicroCode Agent")
                 
                 ToolbarButton(icon: "chart.bar.doc.horizontal") {
                     appState.toggleConsole(tab: 3) // Open Console/Analysis tab
@@ -394,12 +394,6 @@ struct MainToolbar: View {
                     appState.toggleEditorMode(.embedded)
                 }
                 .help("Embedded Studio")
-                
-                // AI Agent Mode (Full Screen)
-                ToolbarButton(icon: "brain.head.profile", isActive: appState.editorMode == .aiAgent, color: .purple) {
-                    appState.toggleEditorMode(.aiAgent)
-                }
-                .help("AI Agent Mode")
                 
                 Divider().frame(height: 16).padding(.horizontal, 6)
                 

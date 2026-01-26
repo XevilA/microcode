@@ -72,7 +72,7 @@ struct EmbeddedStudioView: View {
                 }
             }
             .frame(width: 260)
-            .background(Color(nsColor: .windowBackgroundColor).opacity(0.8))
+            .background(appState.appTheme == .transparent || appState.appTheme == .extraClear ? Color.clear : Color(nsColor: .windowBackgroundColor).opacity(0.8))
             .background(.ultraThinMaterial)
             
             Divider()

@@ -59,7 +59,7 @@ struct ScenarioView: View {
                 }
             }
         }
-        .background(Color.compat(nsColor: .windowBackgroundColor))
+        .background(appState.appTheme == .transparent || appState.appTheme == .extraClear ? Color.clear : Color.compat(nsColor: .windowBackgroundColor))
     }
     
     // MARK: - Toolbar

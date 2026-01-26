@@ -157,6 +157,21 @@ struct AppCommands: Commands {
             Button("Toggle Git Panel") { appState.toggleGitPanel() }
                 .keyboardShortcut("g", modifiers: [.command, .option])
 
+            Divider()
+            
+            // Smart Tag Finder
+            Menu("Tag Finder") {
+                Button("#Function") { }
+                Button("#Class") { }
+                Button("#Fix") { }
+                Button("#Feature") { }
+                Button("#API") { }
+                Button("#Model") { }
+                Button("#View") { }
+                Button("#Service") { }
+            }
+            
+            Divider()
 
             Button("Runtime Manager") { appState.showingRuntimeManager = true }
                 .keyboardShortcut("r", modifiers: [.command, .shift])

@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 APP_NAME="MicroCode"
 BUNDLE_ID="com.dotmini.codetunner"
