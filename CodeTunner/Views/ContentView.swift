@@ -538,12 +538,12 @@ struct EmptyNavigatorView: View {
                 ZStack {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(LinearGradient(colors: [Color(red: 0.02, green: 0.71, blue: 0.83), Color(red: 0.23, green: 0.51, blue: 0.96)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .foregroundStyle(Color(red: 0.04, green: 0.52, blue: 1.0))
                         .offset(x: -8)
                     
                     Image(systemName: "chevron.right")
                         .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(LinearGradient(colors: [Color(red: 0.54, green: 0.36, blue: 0.96), Color(red: 0.92, green: 0.28, blue: 0.60)], startPoint: .topTrailing, endPoint: .bottomLeading))
+                        .foregroundStyle(Color(red: 0.04, green: 0.52, blue: 1.0))
                         .offset(x: 8)
                 }
             }
@@ -2887,6 +2887,7 @@ struct SettingsView: View {
     @State private var authPassword = ""
     @State private var isAuthenticating = false
     @State private var authError = ""
+    @State private var currentPlan: String = "free"
     
     var body: some View {
         VStack(spacing: 0) {
@@ -2987,47 +2988,60 @@ struct SettingsView: View {
                 .foregroundColor(.secondary)
             
             HStack(spacing: 20) {
-                // Free Plan (Current)
+                // Free Plan
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Free Plan")
+                    Text("Community Plan")
                         .font(.system(size: 16, weight: .bold))
-                    Text("Up to 20K tokens / month")
+                    Text("Local IDE & Standard Tools")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                     
-                    Text("Active")
-                        .font(.system(size: 11, weight: .bold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.green.opacity(0.1))
-                        .foregroundColor(.green)
-                        .cornerRadius(4)
+                    if currentPlan == "free" || currentPlan == "starter" {
+                        Text("Active")
+                            .font(.system(size: 11, weight: .bold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.green.opacity(0.1))
+                            .foregroundColor(.green)
+                            .cornerRadius(4)
+                    }
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(nsColor: .controlBackgroundColor))
                 .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.2), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke((currentPlan == "free" || currentPlan == "starter") ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1))
                 
                 // Pro Plan
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Pro Plan")
+                    Text("Professional Plan")
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(LinearGradient(colors: [.accentColor, .purple], startPoint: .leading, endPoint: .trailing))
-                    Text("Unlimited Local AI + 100K Tokens")
+                        .foregroundStyle(Color(red: 0.04, green: 0.52, blue: 1.0))
+                    Text("Unlimited Cloud Copilot + Advanced Builds")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                     
-                    Button("Upgrade for $29") {
-                        NSWorkspace.shared.open(URL(string: "https://microrentofficial.web.app/auth.html?mode=register&intent=upgrade")!)
+                    if currentPlan == "professional" || currentPlan == "enterprise" {
+                        Text("Active")
+                            .font(.system(size: 11, weight: .bold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.green.opacity(0.1))
+                            .foregroundColor(.green)
+                            .cornerRadius(4)
+                    } else {
+                        Button("Start 30-day Free Trial") {
+                            NSWorkspace.shared.open(URL(string: "https://microrentofficial.web.app/auth.html?mode=register&intent=upgrade")!)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color(red: 0.04, green: 0.52, blue: 1.0))
                     }
-                    .buttonStyle(.borderedProminent)
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(nsColor: .controlBackgroundColor))
                 .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.accentColor.opacity(0.4), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke((currentPlan == "professional" || currentPlan == "enterprise") ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1))
                 
                 // Enterprise Plan
                 VStack(alignment: .leading, spacing: 12) {
@@ -3061,9 +3075,19 @@ struct SettingsView: View {
                     VStack(alignment: .leading) {
                         Text("MicroCode Linked Successfully")
                             .font(.system(size: 13, weight: .bold))
-                        Text("UID: \(microRentToken)")
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundColor(.secondary)
+                        HStack(spacing: 8) {
+                            Text("UID: \(microRentToken)")
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundColor(.secondary)
+                            
+                            Button(action: { checkSubscriptionStatus() }) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.accentColor)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Refresh Status")
+                        }
                     }
                     Spacer()
                     Button("Unlink Account") {
@@ -3136,6 +3160,9 @@ struct SettingsView: View {
                     .disabled(microRentToken.isEmpty)
                 }
             }
+        }
+        .onAppear {
+            checkSubscriptionStatus()
         }
     }
     
@@ -3216,6 +3243,26 @@ struct SettingsView: View {
         }.resume()
     }
     
+    private func checkSubscriptionStatus() {
+        guard !microRentToken.isEmpty else { return }
+        
+        let urlString = "https://***REDACTED_RTDB_URL***/users/\(microRentToken)/subscriptionPlan.json"
+        guard let url = URL(string: urlString) else { return }
+        
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            if let data = data, let planString = String(data: data, encoding: .utf8) {
+                DispatchQueue.main.async {
+                    let unquoted = planString.replacingOccurrences(of: "\"", with: "")
+                    if unquoted != "null" && !unquoted.isEmpty {
+                        self.currentPlan = unquoted
+                    } else {
+                        self.currentPlan = "free"
+                    }
+                }
+            }
+        }.resume()
+    }
+    
     // MARK: - About Content
     
     private var aboutContent: some View {
@@ -3237,12 +3284,12 @@ struct SettingsView: View {
                 ZStack {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 56, weight: .bold))
-                        .foregroundStyle(LinearGradient(colors: [Color(red: 0.02, green: 0.71, blue: 0.83), Color(red: 0.23, green: 0.51, blue: 0.96)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .foregroundStyle(Color(red: 0.04, green: 0.52, blue: 1.0))
                         .offset(x: -16)
                     
                     Image(systemName: "chevron.right")
                         .font(.system(size: 56, weight: .bold))
-                        .foregroundStyle(LinearGradient(colors: [Color(red: 0.54, green: 0.36, blue: 0.96), Color(red: 0.92, green: 0.28, blue: 0.60)], startPoint: .topTrailing, endPoint: .bottomLeading))
+                        .foregroundStyle(Color(red: 0.04, green: 0.52, blue: 1.0))
                         .offset(x: 16)
                 }
             }
@@ -3255,7 +3302,7 @@ struct SettingsView: View {
                     .foregroundColor(.primary)
                 Text("PRO")
                     .font(.system(size: 32, weight: .heavy, design: .rounded))
-                    .foregroundStyle(LinearGradient(colors: [Color(red: 0.23, green: 0.51, blue: 0.96), Color(red: 0.92, green: 0.28, blue: 0.60)], startPoint: .leading, endPoint: .trailing))
+                    .foregroundStyle(Color(red: 0.04, green: 0.52, blue: 1.0))
             }
             
             Text("Version 2.0")
