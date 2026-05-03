@@ -69,7 +69,8 @@ async fn main() -> Result<()> {
 
     info!("Starting CodeTunner Backend v2.0.0");
 
-    // Initialize    let terminal_manager = Arc::new(crate::terminal::TerminalManager::new());
+    // Initialize terminal manager
+    let terminal_manager = Arc::new(crate::terminal::TerminalManager::new());
     
     // Create shared state
     let state = Arc::new(RwLock::new(AppState::new()));
@@ -253,7 +254,6 @@ async fn main() -> Result<()> {
         .route("/api/node/versions", get(nodejs::list_versions))
         .route("/api/node/select", post(nodejs::select_version))
 
-        // Database
         // Database
         .route("/api/db/connect", post(handlers::db_connect))
         .route("/api/db/query", post(handlers::db_query))

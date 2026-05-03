@@ -1109,8 +1109,9 @@ public struct SyntaxHighlightedCodeView: NSViewRepresentable {
                         }
                     }
                     
-                    // Force layout to ensure visual update immediately (Nuclear option for New File Blink)
-                    layoutManager.ensureLayout(for: textContainer)
+                    // NOTE: ensureLayout removed — it was forcing synchronous layout of entire
+                    // document on every keystroke, causing multi-second freezes on large files.
+                    // The layout manager handles incremental layout automatically.
                 }
             }
         }
@@ -1175,7 +1176,7 @@ public struct SyntaxHighlightedCodeView: NSViewRepresentable {
 
         func triggerDebouncedHighlight(for textView: NSTextView?) {
             highlightTimer?.invalidate()
-            highlightTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: false) { [weak self] _ in
+            highlightTimer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: false) { [weak self] _ in
                 Task { @MainActor in
                     guard let self = self else { return }
                     if let tv = textView {

@@ -777,7 +777,7 @@ class AppState: ObservableObject {
     @Published var showingCodeAnalysis: Bool = false
     @Published var showingGitSettings: Bool = false
     @Published var showingAuthView: Bool = false
-    @Published var showingProjectManager: Bool = false
+
     @Published var showingCollaborationView: Bool = false
     @Published var showingUserProfile: Bool = false
     @Published var showingContainerView: Bool = false
@@ -831,12 +831,7 @@ class AppState: ObservableObject {
         remoteWorkspaceManager.currentWorkspace != nil
     }
     
-    // Agent Brain State
     @Published var agentStatus: String = "Idle"
-    @Published var taskContent: String = ""
-    @Published var todoContent: String = ""
-    @Published var walkthroughContent: String = ""
-    @Published var selectedDashboardTab: Int = 0 // 0=Task, 1=Todo, 2=Report
     
     struct AIConfig {
         let provider: String
@@ -1219,19 +1214,6 @@ class AppState: ObservableObject {
         await self.refreshFileTree()
         
         // Step 3: Lazy-load background services with delays to prevent CPU spike
-        // All run in detached tasks to not block Main Actor, capturing url explicitly
-        let capturedURL = url 
-        
-        // Project Type Detection (background, low priority)
-        Task.detached(priority: .utility) {
-            let type = ProjectManager.shared.detectProjectType(at: capturedURL)
-            await MainActor.run {
-                self.currentProjectType = type
-            }
-        }
-        
-        // Step 3: Lazy-load background services with delays to prevent CPU spike
-        // All run in detached tasks to not block Main Actor
         
         // Project Type Detection (background, low priority)
         Task.detached(priority: .utility) {
@@ -2300,29 +2282,7 @@ class AppState: ObservableObject {
     }
 
     func refreshArtifacts() {
-        guard let workspace = workspaceFolder else { return }
-        
-        // Helper to read file safely
-        func readFile(_ name: String) -> String {
-            // Check root and .gemini folder
-            let possiblePaths = [
-                workspace.appendingPathComponent(name),
-                workspace.appendingPathComponent(".gemini/antigravity/brain/\(name)") // Mock path structure for now
-            ]
-            
-            for path in possiblePaths {
-                if let content = try? String(contentsOf: path, encoding: .utf8) {
-                    return content
-                }
-            }
-            return ""
-        }
-        
-        DispatchQueue.main.async {
-            self.taskContent = readFile("task.md")
-            self.todoContent = readFile("todo.md")
-            self.walkthroughContent = readFile("walkthrough.md")
-        }
+        // No-op: Task dashboard removed
     }
 
     func rejectAction(_ action: AgentAction) {

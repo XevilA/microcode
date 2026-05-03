@@ -108,6 +108,11 @@ struct AuthenticEditor: NSViewRepresentable {
         // The Brain (Native ObjC++)
         var languageCore: AuthenticLanguageCore?
         
+        // Performance: Debounce timer + dirty tracking
+        private var highlightWorkItem: DispatchWorkItem?
+        private var lastHighlightedText: String = ""
+        private var isHighlighting = false
+        
         init(_ parent: AuthenticEditor) {
             self.parent = parent
             self.currentLanguage = parent.language
@@ -120,20 +125,37 @@ struct AuthenticEditor: NSViewRepresentable {
         public func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             
-            // 1. Update Binding
+            // 1. Update Binding (always immediate)
             parent.text = textView.string
             
-            // 2. Update Core (The Brain)
-            languageCore?.updateSource(textView.string)
-            
-            // 3. Highlight (The Eyes) -> Ask Core for tokens
-            highlight(textView.textStorage, language: currentLanguage)
-            
-            // 4. Invalidate ruler
+            // 2. Invalidate ruler (cheap)
             textView.enclosingScrollView?.verticalRulerView?.needsDisplay = true
+            
+            // 3. Debounced highlight — 150ms after last keystroke
+            highlightWorkItem?.cancel()
+            let workItem = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                self.performHighlight(textView)
+            }
+            highlightWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
         }
         
-        func highlight(_ textStorage: NSTextStorage?, language: String) {
+        private func performHighlight(_ textView: NSTextView) {
+            guard !isHighlighting else { return }
+            isHighlighting = true
+            defer { isHighlighting = false }
+            
+            let text = textView.string
+            
+            // Skip if nothing changed
+            guard text != lastHighlightedText else { return }
+            lastHighlightedText = text
+            
+            highlight(textView.textStorage, language: currentLanguage, textView: textView)
+        }
+        
+        func highlight(_ textStorage: NSTextStorage?, language: String, textView: NSTextView? = nil) {
             guard let textStorage = textStorage else { return }
             
             // Re-init core if language changed
@@ -145,38 +167,57 @@ struct AuthenticEditor: NSViewRepresentable {
             
             guard let core = languageCore else { return }
             
-            // Ensure core is up to date (idempotent if already updated)
+            // Ensure core is up to date
             core.updateSource(textStorage.string)
             
             // Get Native Tokens
             let tokens = core.tokens() ?? []
             
-            // Apply attributes
-            textStorage.beginEditing()
-            let strLength = textStorage.length
-            let fullRange = NSRange(location: 0, length: strLength)
+            // Calculate visible range for partial highlighting
+            let highlightRange: NSRange
+            if let tv = textView,
+               let clipView = tv.enclosingScrollView?.contentView {
+                let visibleRect = clipView.documentVisibleRect
+                // Add generous padding (2x visible height) for smooth scrolling
+                let paddedRect = visibleRect.insetBy(dx: 0, dy: -visibleRect.height)
+                let glyphRange = tv.layoutManager?.glyphRange(forBoundingRect: paddedRect, in: tv.textContainer!) ?? NSRange(location: 0, length: textStorage.length)
+                let charRange = tv.layoutManager?.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil) ?? NSRange(location: 0, length: textStorage.length)
+                highlightRange = charRange
+            } else {
+                highlightRange = NSRange(location: 0, length: textStorage.length)
+            }
             
-            // Reset base
-            textStorage.removeAttribute(.foregroundColor, range: fullRange)
+            // Apply attributes only in visible range
+            textStorage.beginEditing()
+            
+            // Reset base for visible range only
+            textStorage.removeAttribute(.foregroundColor, range: highlightRange)
             textStorage.addAttributes([
                 .foregroundColor: PlaygroundsColors.text,
                 .font: parent.font
-            ], range: fullRange)
+            ], range: highlightRange)
             
-            // Apply token colors
-            applyNativeTokens(tokens, to: textStorage)
+            // Apply token colors (only those in visible range)
+            applyNativeTokens(tokens, to: textStorage, visibleRange: highlightRange)
             
-            // Apply Hex Colors (Feature overlay)
-            applyHexColorHighlighting(to: textStorage)
+            // Apply Hex Colors only in visible range + only for small files (< 50KB)
+            if textStorage.length < 50000 {
+                applyHexColorHighlighting(to: textStorage, inRange: highlightRange)
+            }
             
             textStorage.endEditing()
         }
         
-        private func applyNativeTokens(_ tokens: [AuthenticToken], to storage: NSTextStorage) {
+        private func applyNativeTokens(_ tokens: [AuthenticToken], to storage: NSTextStorage, visibleRange: NSRange) {
             let strLen = storage.length
+            let visEnd = visibleRange.location + visibleRange.length
             
             for token in tokens {
                 let range = token.range
+                // Skip tokens outside visible range
+                if range.location + range.length < visibleRange.location { continue }
+                if range.location > visEnd { break } // tokens are ordered, can stop early
+                
                 if range.location + range.length <= strLen {
                     let color = colorForTokenType(token.type)
                     storage.addAttribute(.foregroundColor, value: color, range: range)
@@ -184,20 +225,22 @@ struct AuthenticEditor: NSViewRepresentable {
             }
         }
         
-        private func applyHexColorHighlighting(to textStorage: NSTextStorage) {
+        private func applyHexColorHighlighting(to textStorage: NSTextStorage, inRange range: NSRange) {
             let string = textStorage.string
-            let fullRange = NSRange(location: 0, length: textStorage.length)
             let hexPattern = "#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})\\b"
             
+            // Clamp range to valid bounds
+            let safeRange = NSIntersectionRange(range, NSRange(location: 0, length: textStorage.length))
+            guard safeRange.length > 0 else { return }
+            
             if let regex = try? NSRegularExpression(pattern: hexPattern, options: []) {
-                regex.enumerateMatches(in: string, options: [], range: fullRange) { match, _, _ in
+                regex.enumerateMatches(in: string, options: [], range: safeRange) { match, _, _ in
                     guard let matchRange = match?.range else { return }
                     let hexString = (string as NSString).substring(with: matchRange)
                     
                     if let color = NSColor(hexString: hexString) {
                         textStorage.addAttribute(.backgroundColor, value: color, range: matchRange)
                         
-                        // Contrast text
                         if let componentColor = color.usingColorSpace(.genericRGB) {
                              let brightness = ((componentColor.redComponent * 299) + (componentColor.greenComponent * 587) + (componentColor.blueComponent * 114)) / 1000
                              let textColor = (brightness > 0.5) ? NSColor.black : NSColor.white

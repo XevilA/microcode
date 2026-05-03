@@ -3,7 +3,7 @@
 //  CodeTunner
 //
 //  Specialized AI Agent for Auto-Healing functionality.
-//  Focuses on analyzing build errors and generating precise code fixes.
+//  Uses AIClient directly for streaming analysis.
 //
 
 import Foundation
@@ -14,16 +14,10 @@ import CodeTunnerSupport
 class HealerAgent: ObservableObject {
     static let shared = HealerAgent()
     
-    private let agent = AgentExecutor.shared
+    private let aiClient = AIClient.shared
     
     /// Analyzes a build error or runtime exception and returns a fix suggestion
-    /// - Parameters:
-    ///   - error: The error message or log
-    ///   - context: Using code snippets or file content
-    ///   - filePath: The file path where the error occurred
-    /// - Returns: A proposed fix description and diff
     func analyzeAndFix(error: String, codeContext: String, filePath: String, aiContext: AuthenticAIContext? = nil) async throws -> HealerSuggestion? {
-        // Construct a specialized prompt
         var prompt = """
         I encountered a build error or runtime crash in my Swift project.
         
@@ -51,10 +45,7 @@ class HealerAgent: ObservableObject {
         Your Goal: provide a replacement code block that fixes the issue.
         """
         
-        // Temporarily override system prompt/behavior if needed, or just use the general agent
-        // For V1, we use the general agent but prompt it specifically.
-        
-        let response = try await agent.run(task: prompt, systemPrompt: """
+        let systemPrompt = """
         You are an expert Swift debugger and code healer.
         Your job is to fix compilation errors and bugs based on logs.
         
@@ -69,9 +60,39 @@ class HealerAgent: ObservableObject {
         ```
         
         Do NOT use tools. Just analyze and provide the code.
-        """)
+        """
         
-        return parseHealerResponse(response, filePath: filePath)
+        // Detect provider from current app settings
+        let defaults = UserDefaults.standard
+        let provider = defaults.string(forKey: "aiProvider") ?? "gemini"
+        let model = defaults.string(forKey: "aiModel") ?? "gemini-2.5-flash"
+        let apiKey = defaults.string(forKey: "\(provider)_api_key") ?? ""
+        
+        let detectedProvider = StreamableAIProvider.detect(from: model)
+        
+        // Use non-streaming sync call
+        var fullResponse = ""
+        
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            aiClient.sendMessage(
+                prompt: prompt,
+                systemPrompt: systemPrompt,
+                provider: detectedProvider,
+                model: model,
+                apiKey: apiKey,
+                onToken: { _ in },
+                onComplete: { text in
+                    fullResponse = text
+                    continuation.resume()
+                },
+                onError: { error in
+                    fullResponse = "Error: \(error)"
+                    continuation.resume()
+                }
+            )
+        }
+        
+        return parseHealerResponse(fullResponse, filePath: filePath)
     }
     
     private func parseHealerResponse(_ response: String, filePath: String) -> HealerSuggestion? {
@@ -81,7 +102,6 @@ class HealerAgent: ObservableObject {
         var explanation = ""
         var fixCode = ""
         
-        // Simple manual parsing
         let lines = response.components(separatedBy: .newlines)
         var parsingCode = false
         
@@ -90,17 +110,12 @@ class HealerAgent: ObservableObject {
                 summary = String(line.dropFirst(8)).trimmingCharacters(in: .whitespaces)
             } else if line.starts(with: "EXPLANATION:") {
                 explanation = String(line.dropFirst(12)).trimmingCharacters(in: .whitespaces)
-            } else if line.contains("FIX_CODE:") {
-                // start looking for code block
             } else if line.trimmingCharacters(in: .whitespaces).hasPrefix("```swift") {
                 parsingCode = true
             } else if line.trimmingCharacters(in: .whitespaces).hasPrefix("```") && parsingCode {
                 parsingCode = false
             } else if parsingCode {
                 fixCode += line + "\n"
-            } else if !parsingCode && explanation.isEmpty && !line.starts(with: "SUMMARY:") {
-                // Approximate explanation capture
-                // explanation += line + " "
             }
         }
         
@@ -111,7 +126,7 @@ class HealerAgent: ObservableObject {
             summary: summary,
             explanation: explanation,
             filePath: filePath,
-            originalError: "Error detected in file", 
+            originalError: "Error detected in file",
             proposedCode: fixCode
         )
     }

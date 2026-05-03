@@ -237,34 +237,35 @@ impl AIProvider for GeminiProvider {
         let mut stream = response.bytes_stream();
         let re = std::sync::OnceLock::new();
         
-        // Manual stream implementation to allow buffering
+        // Manual stream implementation with proper buffer management
         let stream = async_stream::stream! {
             let re = re.get_or_init(|| regex::Regex::new(r#""text":\s*"([^"]*)""#).unwrap());
             let mut buffer = String::new();
+            const OVERLAP: usize = 200; // Keep last N bytes for split-token handling
             
             while let Some(chunk_res) = stream.next().await {
                 match chunk_res {
                     Ok(bytes) => {
                         let s = String::from_utf8_lossy(&bytes);
                         buffer.push_str(&s);
-
-                        // If buffer gets too large, we might want to clear it, but for now we keep it simple.
-                        // We slide through the buffer finding matches.
-                        // A better approach for continuous stream:
-                        // Find matches, yield them, then remove processed part from buffer.
-                        // But since JSON structure is complex, we'll try a simpler heuristic:
-                        // Append to buffer, run regex on NEW part (plus some lookbehind), or just run on whole buffer (inefficient)?
-                        // 
-                        // OPTIMIZATION: Just run on the specific chunk for now, but handle the "split" case by keeping 
-                        // a small overlap or just hoping `reqwest` chunks align reasonably well (which they often do).
-                        //
-                        // ACUTALLY: The most robust way without full JSON parser is to just scan.
-                        // Let's stick to the previous logic but move Regex OUT.
-                        // And maybe use a lighter string search if possible.
                         
-                        for cap in re.captures_iter(&s) {
-                             let part = cap[1].replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\");
-                             yield Ok(part);
+                        // Find all matches in accumulated buffer
+                        let mut last_match_end = 0;
+                        for cap in re.captures_iter(&buffer) {
+                            let part = cap[1].replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\");
+                            if let Some(m) = cap.get(0) {
+                                last_match_end = m.end();
+                            }
+                            yield Ok(part);
+                        }
+                        
+                        // Trim processed content, keeping overlap for split tokens
+                        if last_match_end > 0 && buffer.len() > OVERLAP {
+                            let trim_to = last_match_end.saturating_sub(OVERLAP);
+                            buffer = buffer[trim_to..].to_string();
+                        } else if buffer.len() > 8192 {
+                            // Safety valve: if buffer grows too large without matches, trim it
+                            buffer = buffer[buffer.len() - OVERLAP..].to_string();
                         }
                     }
                     Err(e) => yield Err(AppError::AIRequestFailed(e.to_string())),
@@ -282,14 +283,20 @@ impl AIProvider for GeminiProvider {
     fn models(&self) -> Vec<AIModel> {
         vec![
             AIModel {
-                id: "gemini-3.1-pro-latest".to_string(),
+                id: "gemini-3.1-pro".to_string(),
                 name: "Gemini 3.1 Pro".to_string(),
                 provider: "gemini".to_string(),
                 context_length: 1048576,
             },
             AIModel {
-                id: "gemini-3-flash-latest".to_string(),
-                name: "Gemini 3 Flash".to_string(),
+                id: "gemini-2.5-pro-preview-05-06".to_string(),
+                name: "Gemini 2.5 Pro".to_string(),
+                provider: "gemini".to_string(),
+                context_length: 1048576,
+            },
+            AIModel {
+                id: "gemini-2.5-flash".to_string(),
+                name: "Gemini 2.5 Flash".to_string(),
                 provider: "gemini".to_string(),
                 context_length: 1048576,
             },
@@ -517,16 +524,28 @@ impl AIProvider for OpenAIProvider {
     fn models(&self) -> Vec<AIModel> {
         vec![
             AIModel {
-                id: "gpt-5.1".to_string(),
-                name: "GPT-5.1".to_string(),
+                id: "gpt-5".to_string(),
+                name: "GPT-5".to_string(),
                 provider: "openai".to_string(),
                 context_length: 128000,
             },
             AIModel {
-                id: "gpt-5.2".to_string(),
-                name: "GPT-5.2".to_string(),
+                id: "gpt-4o".to_string(),
+                name: "GPT-4o".to_string(),
                 provider: "openai".to_string(),
-                context_length: 16385,
+                context_length: 128000,
+            },
+            AIModel {
+                id: "o3".to_string(),
+                name: "o3".to_string(),
+                provider: "openai".to_string(),
+                context_length: 128000,
+            },
+            AIModel {
+                id: "o4-mini".to_string(),
+                name: "o4-mini".to_string(),
+                provider: "openai".to_string(),
+                context_length: 128000,
             },
         ]
     }
@@ -756,14 +775,20 @@ impl AIProvider for ClaudeProvider {
     fn models(&self) -> Vec<AIModel> {
         vec![
             AIModel {
-                id: "claude-3-opus-20240229".to_string(),
-                name: "Claude 3 Opus".to_string(),
+                id: "claude-4.7-opus-20260501".to_string(),
+                name: "Claude 4.7 Opus".to_string(),
                 provider: "anthropic".to_string(),
                 context_length: 200000,
             },
             AIModel {
-                id: "claude-3-sonnet-20240229".to_string(),
-                name: "Claude 3 Sonnet".to_string(),
+                id: "claude-sonnet-4-20250514".to_string(),
+                name: "Claude Sonnet 4".to_string(),
+                provider: "anthropic".to_string(),
+                context_length: 200000,
+            },
+            AIModel {
+                id: "claude-3-5-haiku-20241022".to_string(),
+                name: "Claude 3.5 Haiku".to_string(),
                 provider: "anthropic".to_string(),
                 context_length: 200000,
             },
@@ -991,14 +1016,20 @@ impl AIProvider for DeepSeekProvider {
     fn models(&self) -> Vec<AIModel> {
         vec![
             AIModel {
-                id: "deepseek-coder".to_string(),
-                name: "DeepSeek Coder".to_string(),
+                id: "deepseek-chat-v4".to_string(),
+                name: "DeepSeek V4".to_string(),
                 provider: "deepseek".to_string(),
                 context_length: 128000,
             },
             AIModel {
                 id: "deepseek-chat".to_string(),
                 name: "DeepSeek Chat".to_string(),
+                provider: "deepseek".to_string(),
+                context_length: 128000,
+            },
+            AIModel {
+                id: "deepseek-coder".to_string(),
+                name: "DeepSeek Coder".to_string(),
                 provider: "deepseek".to_string(),
                 context_length: 128000,
             },
@@ -1033,7 +1064,7 @@ impl AIProvider for GLMProvider {
             config.api_key.clone()
         };
 
-        let url = "https://api.z.ai/api/paas/v4/chat/completions";
+        let url = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
 
         #[derive(Serialize)]
         struct GLMRequest {

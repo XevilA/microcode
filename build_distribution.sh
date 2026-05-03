@@ -10,17 +10,49 @@ VERSION="1.0.0"
 BUILD_ROOT=".build_dist"
 DIST_ROOT="Dist"
 
+# Argument Parsing
+DEV_MODE="false"
+SIGN_AFTER="false"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --dev)
+            DEV_MODE="true"
+            shift
+            ;;
+        --version)
+            VERSION="$2"
+            shift 2
+            ;;
+        --sign)
+            SIGN_AFTER="true"
+            shift
+            ;;
+        --help)
+            echo "Usage: ./build_distribution.sh [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --dev              Fast build, host arch only, no DMG/PKG"
+            echo "  --version <VER>    Override version (default: 1.0.0)"
+            echo "  --sign             Run sign_and_notarize.sh after build"
+            echo "  --help             Show this help"
+            exit 0
+            ;;
+        *)
+            echo "❌ Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+if [ "$DEV_MODE" = "true" ]; then
+    echo "🚧 DEV MODE ENABLED: Fast build, current arch only, no runtimes, no DMG/PKG."
+fi
+
 # Clean up
 rm -rf "${BUILD_ROOT}"
 rm -rf "${DIST_ROOT}"
 mkdir -p "${DIST_ROOT}"
-
-# Argument Parsing
-DEV_MODE="false"
-if [[ "$1" == "--dev" ]]; then
-    DEV_MODE="true"
-    echo "🚧 DEV MODE ENABLED: Fast build, current arch only, no runtimes, no DMG/PKG."
-fi
 
 echo "🚀 Starting Build Process for ${APP_NAME}..."
 if [ "$DEV_MODE" = "true" ]; then
@@ -337,8 +369,26 @@ package_variant "microcode_Lite" "universal" "false" "Dist/Lite"
 
 echo "========================================"
 echo "🎉 3-Version Build Cycle Complete!"
+echo "   Version: ${VERSION}"
 echo "========================================"
 echo "Artifacts:"
 echo "1. Dist/arm64/microcode_ARM64_Full.dmg"
 echo "2. Dist/x86_64/microcode_Intel_Full.dmg"
 echo "3. Dist/Lite/microcode_Lite.dmg (< 50MB)"
+
+# ==============================================================================
+# 4. OPTIONAL: Sign & Notarize
+# ==============================================================================
+if [ "$SIGN_AFTER" = "true" ]; then
+    echo ""
+    echo "========================================"
+    echo "🔐 Running Sign & Notarize..."
+    echo "========================================"
+    if [ -x "./sign_and_notarize.sh" ]; then
+        ./sign_and_notarize.sh all
+    else
+        echo "⚠️  sign_and_notarize.sh not found or not executable"
+        echo "   Run manually: ./sign_and_notarize.sh all"
+    fi
+fi
+

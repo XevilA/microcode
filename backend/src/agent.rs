@@ -850,6 +850,18 @@ async fn tool_read_file(workspace: &Path, args: &serde_json::Value) -> Result<St
     let full_path = resolve_path(workspace, path_str);
     validate_path_in_workspace(workspace, &full_path)?;
     
+    // Guard: reject files over 10MB to prevent OOM
+    const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024; // 10MB
+    if let Ok(metadata) = tokio::fs::metadata(&full_path).await {
+        if metadata.len() > MAX_FILE_SIZE {
+            return Err(AppError::ValidationError(format!(
+                "File too large ({:.1} MB). Maximum is {} MB. Use a streaming approach for large files.",
+                metadata.len() as f64 / 1_048_576.0,
+                MAX_FILE_SIZE / 1_048_576
+            )));
+        }
+    }
+    
     let content = fs::read_to_string(&full_path).await
         .map_err(|e| AppError::IOError(format!("Failed to read file: {}", e)))?;
     
@@ -1120,28 +1132,116 @@ async fn tool_run_command(workspace: &Path, args: &serde_json::Value) -> Result<
     let command = args["command"].as_str()
         .ok_or_else(|| AppError::ValidationError("command is required".to_string()))?;
     
-    // Security: Block dangerous commands
-    let blocked = ["rm -rf /", "sudo", "chmod 777", ":(){ :|:& };:"];
-    for b in blocked {
-        if command.contains(b) {
-            return Err(AppError::ValidationError(format!("Blocked command: {}", b)));
+    secure_execute_command(workspace, command, None).await
+}
+
+/// Secure command execution with sandboxing:
+/// - Comprehensive blocklist with pattern matching (not just substring)
+/// - 30-second timeout to prevent hangs
+/// - 1MB output limit to prevent OOM
+/// - Restricted environment variables
+/// - Working directory locked to workspace
+async fn secure_execute_command(workspace: &Path, command: &str, description: Option<&str>) -> Result<String> {
+    // Normalize command for checking (lowercase, collapse whitespace)
+    let cmd_lower = command.to_lowercase();
+    let cmd_normalized = cmd_lower.split_whitespace().collect::<Vec<_>>().join(" ");
+    
+    // === COMPREHENSIVE BLOCKLIST ===
+    // Block by exact dangerous commands
+    let blocked_commands = [
+        "rm -rf /", "rm -rf /*", "rm -rf ~", "rm -rf $home",
+        "mkfs", "dd if=", ":(){", "fork", "chmod 777 /",
+        "shutdown", "reboot", "halt", "poweroff", "init 0", "init 6",
+    ];
+    for b in blocked_commands {
+        if cmd_normalized.contains(b) {
+            return Err(AppError::ValidationError(format!("Blocked dangerous command pattern: {}", b)));
         }
     }
     
-    let output = tokio::process::Command::new("sh")
+    // Block privilege escalation
+    let blocked_prefixes = ["sudo ", "su ", "doas ", "pkexec ", "runas "];
+    for prefix in blocked_prefixes {
+        if cmd_normalized.starts_with(prefix) || cmd_normalized.contains(&format!("| {}", prefix)) || cmd_normalized.contains(&format!("&& {}", prefix)) {
+            return Err(AppError::ValidationError(format!("Blocked privilege escalation: {}", prefix.trim())));
+        }
+    }
+    
+    // Block network exfiltration tools (when piped from sensitive sources)
+    let blocked_patterns = [
+        "curl.*-d.*etc", "wget.*--post", "nc -e", "ncat -e",
+        "/dev/tcp", "/dev/udp", "base64.*|.*curl",
+    ];
+    for pattern in blocked_patterns {
+        if let Ok(re) = regex::Regex::new(pattern) {
+            if re.is_match(&cmd_normalized) {
+                return Err(AppError::ValidationError("Blocked potentially dangerous command pattern".to_string()));
+            }
+        }
+    }
+    
+    // Block writing to system directories
+    let system_dirs = ["/etc/", "/usr/", "/bin/", "/sbin/", "/var/", "/boot/", "/root/", "/System/", "/Library/"];
+    for dir in system_dirs {
+        let dir_lower = dir.to_lowercase();
+        if cmd_normalized.contains(&format!(">{}", dir_lower)) || cmd_normalized.contains(&format!("> {}", dir_lower)) {
+            return Err(AppError::ValidationError(format!("Cannot write to system directory: {}", dir)));
+        }
+    }
+    
+    // === EXECUTE WITH TIMEOUT ===
+    let timeout_duration = std::time::Duration::from_secs(30);
+    
+    let child = tokio::process::Command::new("sh")
         .args(["-c", command])
         .current_dir(workspace)
-        .output()
-        .await
-        .map_err(|e| AppError::IOError(e.to_string()))?;
+        .env_clear()
+        .env("PATH", "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin")
+        .env("HOME", dirs::home_dir().unwrap_or_default())
+        .env("LANG", "en_US.UTF-8")
+        .env("TERM", "xterm-256color")
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| AppError::IOError(format!("Failed to spawn command: {}", e)))?;
     
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
+    // Wait with timeout
+    let result = tokio::time::timeout(timeout_duration, child.wait_with_output()).await;
     
-    if output.status.success() {
-        Ok(stdout.to_string())
-    } else {
-        Err(AppError::IOError(format!("Command failed: {}", stderr)))
+    match result {
+        Ok(Ok(output)) => {
+            // Limit output size to 1MB
+            const MAX_OUTPUT: usize = 1_048_576;
+            let stdout_raw = String::from_utf8_lossy(&output.stdout);
+            let stderr_raw = String::from_utf8_lossy(&output.stderr);
+            
+            let stdout = if stdout_raw.len() > MAX_OUTPUT {
+                format!("{}\n... [truncated, {} bytes total]", &stdout_raw[..MAX_OUTPUT], stdout_raw.len())
+            } else {
+                stdout_raw.to_string()
+            };
+            
+            let stderr = if stderr_raw.len() > MAX_OUTPUT {
+                format!("{}\n... [truncated, {} bytes total]", &stderr_raw[..MAX_OUTPUT], stderr_raw.len())
+            } else {
+                stderr_raw.to_string()
+            };
+            
+            let exit_code = output.status.code().unwrap_or(-1);
+            
+            let desc_line = if let Some(d) = description {
+                format!("\nDescription: {}", d)
+            } else {
+                String::new()
+            };
+            
+            Ok(format!(
+                "Command: {}{}\nExit Code: {}\n\nSTDOUT:\n{}\n\nSTDERR:\n{}",
+                command, desc_line, exit_code, stdout, stderr
+            ))
+        }
+        Ok(Err(e)) => Err(AppError::IOError(format!("Command failed: {}", e))),
+        Err(_) => Err(AppError::IOError(format!("Command timed out after {} seconds: {}", timeout_duration.as_secs(), command))),
     }
 }
 
@@ -2300,32 +2400,8 @@ async fn tool_search_rag(state: Arc<TokioRwLock<crate::state::AppState>>, args: 
 async fn tool_execute_command(workspace: &Path, args: &serde_json::Value) -> Result<String> {
     let command = args["command"].as_str()
         .ok_or_else(|| AppError::ValidationError("command is required".to_string()))?;
-    let description = args["description"].as_str().unwrap_or("No description provided");
+    let description = args["description"].as_str();
     
-    // Security: Block dangerous commands
-    let blocked = ["rm -rf /", "sudo", "chmod 777", ":(){ :|:& };:"];
-    for b in blocked {
-        if command.contains(b) {
-            return Err(AppError::ValidationError(format!("Blocked command: {}", b)));
-        }
-    }
-    
-    let output = tokio::process::Command::new("sh")
-        .args(["-c", command])
-        .current_dir(workspace)
-        .output()
-        .await
-        .map_err(|e| AppError::IOError(e.to_string()))?;
-    
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let exit_code = output.status.code().unwrap_or(-1);
-    
-    let result = format!(
-        "Command: {}\nDescription: {}\nExit Code: {}\n\nSTDOUT:\n{}\n\nSTDERR:\n{}",
-        command, description, exit_code, stdout, stderr
-    );
-    
-    // We return Ok even if exit_code != 0 so the AI can "read" the error and decide how to fix it
-    Ok(result)
+    // Reuse the same secure execution path
+    secure_execute_command(workspace, command, description).await
 }

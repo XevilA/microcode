@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <installer-gui-script minSpecVersion="1">
-    <title>CodeTunner</title>
+    <title>MicroCode</title>
     <welcome file="Welcome.rtf"/>
     <background file="installer_background.png" alignment="bottomleft" scaling="none"/>
-    <options customize="never" require-scripts="false"/>
+    <options customize="never" require-scripts="false" hostArchitectures="arm64,x86_64"/>
     <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
+    <volume-check>
+        <allowed-os-versions>
+            <os-version min="13.0"/>
+        </allowed-os-versions>
+    </volume-check>
     <choices-outline>
         <line choice="default"/>
     </choices-outline>
-    <choice id="default" title="CodeTunner Application">
+    <choice id="default" title="MicroCode Application" description="MicroCode — Native macOS Code Editor by Dotmini Software">
         <pkg-ref id="com.dotmini.codetunner"/>
     </choice>
-    <pkg-ref id="com.dotmini.codetunner" version="1.0" onConclusion="none">CodeTunnerComponent.pkg</pkg-ref>
+    <pkg-ref id="com.dotmini.codetunner" version="1.0.0" onConclusion="none">MicroCodeComponent.pkg</pkg-ref>
 </installer-gui-script>

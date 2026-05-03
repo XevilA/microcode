@@ -109,10 +109,6 @@ struct ContentView: View {
         }
 
 
-        .sheet(isPresented: $appState.showingProjectManager) {
-            TaskDashboardView()
-                .frame(minWidth: 900, minHeight: 600)
-        }
         .sheet(isPresented: $appState.showingCollaborationView) {
             CollaborationView()
         }
@@ -378,16 +374,11 @@ struct MainToolbar: View {
                 
                 Divider().frame(height: 16).padding(.horizontal, 6)
                 
-                // Collaboration & Task Manager
+                // Collaboration
                 ToolbarButton(icon: "person.2.fill", color: .cyan) {
                     appState.showingCollaborationView = true
                 }
                 .help("Realtime Collaboration")
-                
-                ToolbarButton(icon: "checklist.unchecked", color: .blue) { // New Icon
-                    appState.showingProjectManager = true
-                }
-                .help("Project & Task Manager")
                 
                 // Embedded Studio (Full Window Mode)
                 ToolbarButton(icon: "cpu.fill", isActive: appState.editorMode == .embedded, color: .orange) {
@@ -2365,7 +2356,6 @@ struct NewFileLanguageCard: View {
 struct AIChatPanel: View {
     @EnvironmentObject var appState: AppState
     @State private var inputMessage: String = ""
-    @State private var showTaskDashboard: Bool = true // Default to showing tasks
     
     var body: some View {
         VStack(spacing: 0) {
@@ -2380,14 +2370,6 @@ struct AIChatPanel: View {
                 }
                 
                 Spacer()
-                
-                // Task Dashboard Toggle
-                Button(action: { withAnimation { showTaskDashboard.toggle() } }) {
-                    Image(systemName: "list.bullet.clipboard")
-                        .foregroundColor(showTaskDashboard ? .accentColor : .secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Toggle Task Dashboard")
                 
                 // Agent Mode Toggle
                 Toggle(isOn: $appState.agentMode) {
@@ -2406,22 +2388,31 @@ struct AIChatPanel: View {
                 
                 // Model Selector Pill
                 Menu {
-                    Section("Gemini") {
-                        Button("Gemini 2.5 Pro Preview") { appState.aiModel = "gemini-2.5-pro-preview" }
-                        Button("Gemini 2.5 Flash") { appState.aiModel = "gemini-2.5-flash" }
-                        Button("Gemini 2.5 Flash Lite") { appState.aiModel = "gemini-2.5-flash-lite" }
+                    Section("Google Gemini") {
+                        Button("Gemini 3.1 Pro ✨") { setModel("gemini-3.1-pro", provider: "gemini") }
+                        Button("Gemini 2.5 Pro") { setModel("gemini-2.5-pro-preview-05-06", provider: "gemini") }
+                        Button("Gemini 2.5 Flash") { setModel("gemini-2.5-flash", provider: "gemini") }
                     }
                     Section("OpenAI") {
-                        Button("GPT-4o") { appState.aiModel = "gpt-4o" }
-                        Button("GPT-4o Mini") { appState.aiModel = "gpt-4o-mini" }
+                        Button("GPT‑5 ✨") { setModel("gpt-5", provider: "openai") }
+                        Button("GPT‑4o") { setModel("gpt-4o", provider: "openai") }
+                        Button("o3") { setModel("o3", provider: "openai") }
+                        Button("o4‑mini") { setModel("o4-mini", provider: "openai") }
                     }
-                    Section("Claude") {
-                        Button("Claude 3 Opus") { appState.aiModel = "claude-3-opus-20240229" }
-                        Button("Claude 3 Sonnet") { appState.aiModel = "claude-3-sonnet-20240229" }
+                    Section("Anthropic Claude") {
+                        Button("Claude 4.7 Opus ✨") { setModel("claude-4.7-opus-20260501", provider: "anthropic") }
+                        Button("Claude Sonnet 4") { setModel("claude-sonnet-4-20250514", provider: "anthropic") }
+                        Button("Claude 3.5 Haiku") { setModel("claude-3-5-haiku-20241022", provider: "anthropic") }
                     }
                     Section("DeepSeek") {
-                        Button("DeepSeek Chat") { appState.aiModel = "deepseek-chat" }
-                        Button("DeepSeek Coder") { appState.aiModel = "deepseek-coder" }
+                        Button("DeepSeek V4 ✨") { setModel("deepseek-chat-v4", provider: "deepseek") }
+                        Button("DeepSeek Chat") { setModel("deepseek-chat", provider: "deepseek") }
+                        Button("DeepSeek Coder") { setModel("deepseek-coder", provider: "deepseek") }
+                    }
+                    Section("Others") {
+                        Button("Grok 3") { setModel("grok-3", provider: "grok") }
+                        Button("Qwen3 235B") { setModel("qwen3-235b-a22b", provider: "qwen") }
+                        Button("GLM‑4.6") { setModel("glm-4.6", provider: "glm") }
                     }
                 } label: {
                     HStack(spacing: 4) {
@@ -2458,12 +2449,6 @@ struct AIChatPanel: View {
                     .foregroundColor(Color(nsColor: .separatorColor).opacity(0.1)),
                 alignment: .bottom
             )
-            
-            // Agent Brain Dashboard (Replaces TaskDashboard)
-            if showTaskDashboard {
-                AgentBrainDashboard()
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
             
             Divider()
             
@@ -2578,22 +2563,34 @@ struct AIChatPanel: View {
     
     private var modelDisplayName: String {
         switch appState.aiModel {
+        case let m where m.contains("gemini-3.1"): return "Gemini 3.1"
         case "gemini-2.5-flash": return "Gemini 2.5"
-        case "gemini-2.5-pro-preview-05-06": return "Gemini Pro"
-        case "gemini-1.5-flash": return "Gemini 1.5"
-        case "gpt-4o": return "GPT-4o"
-        case "gpt-4o-mini": return "GPT-4o Mini"
-        case "claude-3-opus-20240229": return "Claude Opus"
-        case "claude-3-sonnet-20240229": return "Claude Sonnet"
+        case let m where m.contains("gemini-2.5-pro"): return "Gemini Pro"
+        case "gpt-5": return "GPT‑5"
+        case "gpt-4o": return "GPT‑4o"
+        case "gpt-4o-mini": return "GPT‑4o Mini"
+        case "o3": return "o3"
+        case "o4-mini": return "o4‑mini"
+        case let m where m.contains("claude-4.7"): return "Claude Opus"
+        case let m where m.contains("claude-sonnet-4"): return "Sonnet 4"
+        case let m where m.contains("claude-3-5-sonnet"): return "Sonnet 3.5"
+        case let m where m.contains("claude-3-5-haiku"): return "Haiku 3.5"
+        case "deepseek-chat-v4": return "DS V4"
         case "deepseek-chat": return "DeepSeek"
         case "deepseek-coder": return "DS Coder"
-        case "glm-4": return "GLM-4"
-        case "glm-4-flash": return "GLM Flash"
-        case "grok-beta": return "Grok Beta"
-        case "qwen-max": return "Qwen Max"
-        case "qwen-plus": return "Qwen Plus"
-        default: return appState.aiModel
+        case "deepseek-reasoner": return "DS Reason"
+        case let m where m.contains("grok"): return "Grok 3"
+        case let m where m.contains("qwen"): return "Qwen3"
+        case let m where m.contains("glm"): return "GLM‑4"
+        default: return String(appState.aiModel.prefix(12))
         }
+    }
+    
+    private func setModel(_ model: String, provider: String) {
+        appState.aiModel = model
+        appState.aiProvider = provider
+        UserDefaults.standard.set(model, forKey: "aiModel")
+        UserDefaults.standard.set(provider, forKey: "aiProvider")
     }
     
     private func sendMessage() {
@@ -2727,98 +2724,7 @@ struct ChatMessageView: View {
 
 // MARK: - New Components
 
-struct AgentBrainDashboard: View {
-    @EnvironmentObject var appState: AppState
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            // Tab Header
-            HStack(spacing: 0) {
-                DashboardTabBtn(title: "Plan", icon: "list.clipboard", index: 0, selection: $appState.selectedDashboardTab)
-                DashboardTabBtn(title: "Todo", icon: "checklist", index: 1, selection: $appState.selectedDashboardTab)
-                DashboardTabBtn(title: "Report", icon: "doc.text", index: 2, selection: $appState.selectedDashboardTab)
-                
-                Spacer()
-                
-                Button(action: { appState.refreshArtifacts() }) {
-                    Image(systemName: "arrow.clockwise")
-                        .foregroundColor(.secondary)
-                        .font(.system(size: 11))
-                }
-                .buttonStyle(.plain)
-                .help("Refresh Artifacts")
-                .padding(.trailing, 8)
-            }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
-            .background(Color(nsColor: .controlBackgroundColor))
-            
-            Divider()
-            
-            // Content
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    if activeContent.isEmpty {
-                        Text("No content found.")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    } else {
-                        Text(activeContent)
-                            .font(.system(size: 11, design: .monospaced))
-                            .padding(12)
-                    }
-                }
-            }
-            .frame(maxHeight: 200)
-            .background(Color(nsColor: .textBackgroundColor).opacity(0.5))
-        }
-        .background(Color(nsColor: .windowBackgroundColor))
-        .overlay(
-            Rectangle()
-                .stroke(Color.secondary.opacity(0.1), lineWidth: 1)
-        )
-        .onAppear {
-            appState.refreshArtifacts()
-        }
-    }
-    
-    var activeContent: String {
-        switch appState.selectedDashboardTab {
-        case 0: return appState.taskContent
-        case 1: return appState.todoContent
-        case 2: return appState.walkthroughContent
-        default: return ""
-        }
-    }
-}
-
-struct DashboardTabBtn: View {
-    let title: String
-    let icon: String
-    let index: Int
-    @Binding var selection: Int
-    
-    var body: some View {
-        Button(action: { selection = index }) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 10))
-                Text(title)
-                    .font(.system(size: 11, weight: selection == index ? .semibold : .regular))
-            }
-            .foregroundColor(selection == index ? .primary : .secondary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(
-                Capsule()
-                    .fill(selection == index ? Color.accentColor.opacity(0.1) : Color.clear)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
+// AgentBrainDashboard and DashboardTabBtn removed — Task Windows deprecated
 
 struct ThinkingIndicatorView: View {
     @State private var isAnimating = false
@@ -3526,136 +3432,301 @@ struct SettingsView: View {
     
     // MARK: - AI Settings
     
+    // MARK: - AI Provider Registry
+    
+    private struct AIProviderInfo {
+        let id: String
+        let name: String
+        let icon: String
+        let color: Color
+        let endpoint: String
+        let models: [(name: String, id: String, badge: String)]
+    }
+    
+    private var aiProviders: [AIProviderInfo] {
+        [
+            AIProviderInfo(id: "gemini", name: "Google Gemini", icon: "sparkle", color: .blue,
+                          endpoint: "generativelanguage.googleapis.com",
+                          models: [
+                              ("Gemini 3.1 Pro", "gemini-3.1-pro", "NEW"),
+                              ("Gemini 2.5 Pro", "gemini-2.5-pro-preview-05-06", ""),
+                              ("Gemini 2.5 Flash", "gemini-2.5-flash", "FAST"),
+                              ("Gemini 2.5 Flash‑Lite", "gemini-2.5-flash-lite", ""),
+                              ("Gemma 3n", "gemma-3n-e4", "OPEN"),
+                          ]),
+            AIProviderInfo(id: "openai", name: "OpenAI", icon: "brain.head.profile", color: .green,
+                          endpoint: "api.openai.com",
+                          models: [
+                              ("GPT‑5", "gpt-5", "NEW"),
+                              ("GPT‑4o", "gpt-4o", ""),
+                              ("GPT‑4o Mini", "gpt-4o-mini", "FAST"),
+                              ("o3", "o3", "REASON"),
+                              ("o4‑mini", "o4-mini", "REASON"),
+                          ]),
+            AIProviderInfo(id: "anthropic", name: "Anthropic Claude", icon: "aqi.medium", color: .orange,
+                          endpoint: "api.anthropic.com",
+                          models: [
+                              ("Claude 4.7 Opus", "claude-4.7-opus-20260501", "NEW"),
+                              ("Claude Sonnet 4", "claude-sonnet-4-20250514", ""),
+                              ("Claude 3.5 Sonnet", "claude-3-5-sonnet-20241022", ""),
+                              ("Claude 3.5 Haiku", "claude-3-5-haiku-20241022", "FAST"),
+                          ]),
+            AIProviderInfo(id: "deepseek", name: "DeepSeek", icon: "water.waves", color: .cyan,
+                          endpoint: "api.deepseek.com",
+                          models: [
+                              ("DeepSeek V4", "deepseek-chat-v4", "NEW"),
+                              ("DeepSeek Chat", "deepseek-chat", ""),
+                              ("DeepSeek Coder", "deepseek-coder", "CODE"),
+                              ("DeepSeek Reasoner", "deepseek-reasoner", "REASON"),
+                          ]),
+            AIProviderInfo(id: "grok", name: "Grok (xAI)", icon: "bolt.fill", color: .purple,
+                          endpoint: "api.x.ai",
+                          models: [
+                              ("Grok 3", "grok-3", "NEW"),
+                              ("Grok 3 Mini", "grok-3-mini", "FAST"),
+                          ]),
+            AIProviderInfo(id: "qwen", name: "Qwen (Alibaba)", icon: "cloud.fill", color: .indigo,
+                          endpoint: "dashscope.aliyuncs.com",
+                          models: [
+                              ("Qwen3 235B‑A22B", "qwen3-235b-a22b", "NEW"),
+                              ("Qwen Max", "qwen-max", ""),
+                              ("Qwen Plus", "qwen-plus", "FAST"),
+                          ]),
+            AIProviderInfo(id: "glm", name: "GLM (Zhipu AI)", icon: "globe.asia.australia", color: .red,
+                          endpoint: "open.bigmodel.cn",
+                          models: [
+                              ("GLM‑4.6", "glm-4.6", "NEW"),
+                              ("GLM‑4 Plus", "glm-4-plus", ""),
+                              ("GLM‑4 Flash", "glm-4-flash", "FAST"),
+                          ]),
+        ]
+    }
+    
+    @State private var providerKeys: [String: String] = [:]
+    @State private var showAPIKey: [String: Bool] = [:]
+    
     private var aiSettingsContent: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Provider Selection Card
-                VStack(alignment: .leading, spacing: 12) {
-                    SettingsSectionHeader(title: "AI Provider")
-                    
-                    Picker("Provider", selection: $selectedProvider) {
-                        Text("Google Gemini").tag("gemini")
-                        Text("OpenAI").tag("openai")
-                        Text("Anthropic Claude").tag("anthropic")
-                        Text("GLM (Zhipu AI)").tag("glm")
-                        Text("DeepSeek").tag("deepseek")
-                        Text("Grok (xAI)").tag("grok")
-                        Text("Qwen (Alibaba)").tag("qwen")
-                    }
-                    .pickerStyle(.menu) // Changed to menu for cleaner look
-                    .frame(maxWidth: 300)
-                    .onChange(of: selectedProvider) { newValue in
-                        hasChanges = true
-                        // Set default model logic...
-                        switch newValue {
-                        case "gemini": selectedModel = "gemini-2.5-flash"
-                        case "openai": selectedModel = "gpt-4o"
-                        case "anthropic": selectedModel = "claude-3-sonnet"
-                        case "glm": selectedModel = "glm-4"
-                        case "deepseek": selectedModel = "deepseek-coder"
-                        default: break
+        VStack(alignment: .leading, spacing: 20) {
+            // ── Default Provider & Model ──
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.yellow)
+                    Text("Default Provider & Model")
+                        .font(.system(size: 13, weight: .bold))
+                }
+                
+                Text("Choose which AI provider and model to use by default in the Agent and Chat.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                
+                HStack(spacing: 16) {
+                    // Provider picker
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Provider")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        Picker("", selection: $selectedProvider) {
+                            ForEach(aiProviders, id: \.id) { p in
+                                Label(p.name, systemImage: p.icon).tag(p.id)
+                            }
                         }
-                        // Load saved API key
-                        apiKey = appState.apiKeys[newValue] ?? UserDefaults.standard.string(forKey: "\(newValue)_api_key") ?? ""
+                        .labelsHidden()
+                        .frame(width: 200)
+                        .onChange(of: selectedProvider) { newValue in
+                            hasChanges = true
+                            if let provider = aiProviders.first(where: { $0.id == newValue }),
+                               let first = provider.models.first {
+                                selectedModel = first.id
+                            }
+                        }
+                    }
+                    
+                    // Model picker (filtered by selected provider)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Model")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        Picker("", selection: $selectedModel) {
+                            if let provider = aiProviders.first(where: { $0.id == selectedProvider }) {
+                                ForEach(provider.models, id: \.id) { m in
+                                    HStack {
+                                        Text(m.name)
+                                        if !m.badge.isEmpty {
+                                            Text(m.badge)
+                                                .font(.system(size: 8, weight: .bold))
+                                                .foregroundColor(.white)
+                                        }
+                                    }.tag(m.id)
+                                }
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 240)
+                        .onChange(of: selectedModel) { _ in hasChanges = true }
                     }
                 }
-                .padding()
-                .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(12)
                 
-                // Model Selection Card
-                VStack(alignment: .leading, spacing: 12) {
-                    SettingsSectionHeader(title: "Model Configuration")
-                    
-                    Picker("Model", selection: $selectedModel) {
-                        if selectedProvider == "gemini" {
-                            Section("Gemini 2.5 (Latest)") {
-                                Text("Gemini 2.5 Pro Preview").tag("gemini-2.5-pro-preview")
-                                Text("Gemini 2.5 Flash").tag("gemini-2.5-flash")
-                                Text("Gemini 2.5 Flash Lite").tag("gemini-2.5-flash-lite")
-                            }
-                            Section("Gemini 1.5") {
-                                Text("Gemini 1.5 Pro").tag("gemini-1.5-pro")
-                                Text("Gemini 1.5 Flash").tag("gemini-1.5-flash")
-                            }
-                            Section("Gemma (Open Models)") {
-                                Text("Gemma 3n (New)").tag("gemma-3n-it")
-                                Text("Gemma 2 2B").tag("gemma-2-2b-it")
-                                Text("Gemma 2 9B").tag("gemma-2-9b-it")
-                                Text("Gemma 2 27B").tag("gemma-2-27b-it")
-                            }
-                        } else if selectedProvider == "openai" {
-                            Text("GPT-4o").tag("gpt-4o")
-                            Text("GPT-4 Turbo").tag("gpt-4-turbo")
-                            Text("GPT-3.5 Turbo").tag("gpt-3.5-turbo")
-                        } else if selectedProvider == "anthropic" {
-                            Text("Claude 3 Opus").tag("claude-3-opus")
-                            Text("Claude 3 Sonnet").tag("claude-3-sonnet")
-                            Text("Claude 3 Haiku").tag("claude-3-haiku")
-                        } else if selectedProvider == "glm" {
-                            Text("GLM-4.6").tag("glm-4.6")
-                            Text("GLM-4 Plus").tag("glm-4-plus")
-                            Text("GLM-4").tag("glm-4")
-                            Text("GLM-4 Flash").tag("glm-4-flash")
-                        } else if selectedProvider == "deepseek" {
-                            Text("DeepSeek Chat").tag("deepseek-chat")
-                            Text("DeepSeek Coder").tag("deepseek-coder")
-                        } else if selectedProvider == "grok" {
-                            Text("Grok Beta").tag("grok-beta")
-                        } else if selectedProvider == "qwen" {
-                            Text("Qwen Max").tag("qwen-max")
-                            Text("Qwen Plus").tag("qwen-plus")
-                        }
+                // Status pill
+                if let key = providerKeys[selectedProvider], !key.isEmpty {
+                    HStack(spacing: 6) {
+                        Circle().fill(Color.green).frame(width: 7, height: 7)
+                        Text("API key configured")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.green)
                     }
-                    .frame(maxWidth: 300)
-                    .onChange(of: selectedModel) { _ in hasChanges = true }
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Color.green.opacity(0.08))
+                    .cornerRadius(6)
+                } else {
+                    HStack(spacing: 6) {
+                        Circle().fill(Color.orange).frame(width: 7, height: 7)
+                        Text("No API key — set one below")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Color.orange.opacity(0.08))
+                    .cornerRadius(6)
+                }
+            }
+            .padding(16)
+            .background(Color(nsColor: .controlBackgroundColor))
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.accentColor.opacity(0.2), lineWidth: 1))
+            
+            // ── Provider API Keys ──
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    Image(systemName: "key.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.accentColor)
+                    Text("API Keys")
+                        .font(.system(size: 13, weight: .bold))
                     
-                    Text("Select the model optimized for your task. Flash models are faster, Pro/Opus models are smarter.")
-                        .font(.caption)
+                    Spacer()
+                    
+                    Text("Configure one or more providers. Keys are stored locally.")
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
-                .padding()
-                .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(12)
                 
-                // API Key Card
-                VStack(alignment: .leading, spacing: 12) {
-                    SettingsSectionHeader(title: "Authentication")
-                    
-                    HStack {
-                        SecureField("API Key", text: $apiKey)
-                            .textFieldStyle(.roundedBorder)
-                            .onChange(of: apiKey) { _ in hasChanges = true }
-                        
-                        if !apiKey.isEmpty {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                                .font(.title3)
+                // Provider cards grid
+                ForEach(aiProviders, id: \.id) { provider in
+                    aiProviderKeyCard(provider)
+                }
+            }
+            .padding(16)
+            .background(Color(nsColor: .controlBackgroundColor))
+            .cornerRadius(12)
+        }
+    }
+    
+    private func aiProviderKeyCard(_ provider: AIProviderInfo) -> some View {
+        let key = Binding<String>(
+            get: { providerKeys[provider.id] ?? "" },
+            set: { providerKeys[provider.id] = $0; hasChanges = true }
+        )
+        let isVisible = showAPIKey[provider.id] ?? false
+        let hasKey = !(providerKeys[provider.id] ?? "").isEmpty
+        let isDefault = selectedProvider == provider.id
+        
+        return HStack(spacing: 12) {
+            // Provider icon + name
+            HStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(provider.color.opacity(0.12))
+                        .frame(width: 28, height: 28)
+                    Image(systemName: provider.icon)
+                        .font(.system(size: 13))
+                        .foregroundColor(provider.color)
+                }
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 6) {
+                        Text(provider.name)
+                            .font(.system(size: 12, weight: .semibold))
+                        if isDefault {
+                            Text("DEFAULT")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(Color.accentColor)
+                                .cornerRadius(3)
                         }
                     }
-                    
-                    HStack {
-                        Image(systemName: "lock.fill")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("Your API key is stored securely in the system keychain.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    if selectedProvider == "glm" {
-                        Divider()
-                        Text("Endpoint: https://api.z.ai/api/paas/v4/chat/completions")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    Text(provider.endpoint)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
                 }
-                .padding()
-                .background(Color(nsColor: .controlBackgroundColor))
-                .cornerRadius(12)
             }
-            .padding(.trailing, 20) // Scroller padding
+            .frame(width: 180, alignment: .leading)
+            
+            // Key field
+            HStack(spacing: 6) {
+                if isVisible {
+                    TextField("sk-...", text: key)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 12, design: .monospaced))
+                } else {
+                    SecureField("Paste API key here", text: key)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 12))
+                }
+                
+                // Toggle visibility
+                Button(action: { showAPIKey[provider.id] = !isVisible }) {
+                    Image(systemName: isVisible ? "eye.slash" : "eye")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help(isVisible ? "Hide key" : "Show key")
+            }
+            
+            // Status
+            if hasKey {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.system(size: 14))
+                    .help("Key configured")
+            } else {
+                Image(systemName: "circle.dashed")
+                    .foregroundColor(.secondary.opacity(0.4))
+                    .font(.system(size: 14))
+                    .help("No key set")
+            }
+            
+            // Set as default
+            if hasKey && !isDefault {
+                Button(action: {
+                    selectedProvider = provider.id
+                    if let first = provider.models.first { selectedModel = first.id }
+                    hasChanges = true
+                }) {
+                    Text("Use")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.accentColor)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Color.accentColor.opacity(0.1))
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+                .help("Set as default provider")
+            }
         }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .background(isDefault ? Color.accentColor.opacity(0.04) : Color.clear)
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(isDefault ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.08), lineWidth: 1)
+        )
     }
     
     // MARK: - Tools Settings
@@ -3696,12 +3767,17 @@ struct SettingsView: View {
         cellFontName = appState.cellFontName
         cellFontSize = appState.cellFontSize
         cellFontWeight = appState.cellFontWeight
-        apiKey = appState.apiKeys[appState.aiProvider] ?? UserDefaults.standard.string(forKey: "\(appState.aiProvider)_api_key") ?? ""
+        
+        // Load ALL provider keys
+        let providers = ["gemini", "openai", "anthropic", "deepseek", "grok", "qwen", "glm"]
+        for p in providers {
+            providerKeys[p] = appState.apiKeys[p] ?? UserDefaults.standard.string(forKey: "\(p)_api_key") ?? ""
+        }
+        apiKey = providerKeys[selectedProvider] ?? ""
         microRentToken = UserDefaults.standard.string(forKey: "microRentToken") ?? ""
     }
     
     private func saveAllSettings() {
-        // Save to AppState
         appState.aiProvider = selectedProvider
         appState.aiModel = selectedModel
         appState.fontSize = fontSize
@@ -3718,13 +3794,15 @@ struct SettingsView: View {
         appState.cellFontSize = cellFontSize
         appState.cellFontWeight = cellFontWeight
         
-        // Update API Key in AppState
-        if !apiKey.isEmpty {
-            appState.apiKeys[selectedProvider] = apiKey
+        // Save ALL provider keys
+        let defaults = UserDefaults.standard
+        for (provider, key) in providerKeys {
+            if !key.isEmpty {
+                appState.apiKeys[provider] = key
+                defaults.set(key, forKey: "\(provider)_api_key")
+            }
         }
         
-        // Save to UserDefaults
-        let defaults = UserDefaults.standard
         defaults.set(selectedProvider, forKey: "aiProvider")
         defaults.set(selectedModel, forKey: "aiModel")
         defaults.set(fontSize, forKey: "fontSize")
@@ -3740,10 +3818,6 @@ struct SettingsView: View {
         defaults.set(cellFontName, forKey: "cellFontName")
         defaults.set(cellFontSize, forKey: "cellFontSize")
         defaults.set(cellFontWeight, forKey: "cellFontWeight")
-        
-        if !apiKey.isEmpty {
-            defaults.set(apiKey, forKey: "\(selectedProvider)_api_key")
-        }
         
         defaults.set(microRentToken, forKey: "microRentToken")
         if !microRentToken.isEmpty {

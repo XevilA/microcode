@@ -65,7 +65,6 @@ dotenv = "0.15"
 serde_yaml = "0.9"
 
 # Git operations
-# Git operations
 git2 = { version = "0.18", features = ["vendored-openssl"] }
 
 # File system operations

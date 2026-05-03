@@ -67,10 +67,8 @@ struct AIAgentView: View {
         }
         .background(appState.appTheme == .transparent || appState.appTheme == .extraClear ? Color.clear : Color(nsColor: .windowBackgroundColor))
         .onAppear {
-            if agent.sessionId == nil, let workspace = appState.workspaceFolder {
-                Task {
-                    await agent.createSession(workspacePath: workspace.path)
-                }
+            if let workspace = appState.workspaceFolder {
+                agent.setWorkspace(workspace.path)
             }
         }
     }
@@ -222,7 +220,11 @@ struct AIAgentView: View {
                     .padding(.horizontal, 4)
                 
                 HeaderIconButton(icon: "arrow.uturn.backward", label: nil) {
-                    Task { await agent.undo() }
+                    // Remove last assistant + user message pair
+                    if agent.messages.count >= 2 {
+                        agent.messages.removeLast(2)
+                        agent.saveChats()
+                    }
                 }.help("Undo Last Action")
                 
                 HeaderIconButton(icon: "trash", label: nil) {
@@ -407,79 +409,91 @@ struct AIAgentView: View {
         let currentAttachments = attachments
         
         inputText = ""
-        attachments = [] // Clear immediately
+        attachments = []
         
-        let userMessage = AgentMessageModel(
-            id: UUID().uuidString,
-            role: .user,
-            content: userText + (currentAttachments.isEmpty ? "" : "\n[Attached: \(currentAttachments.map(\.name).joined(separator: ", "))]"),
-            toolResults: [],
-            pendingChanges: [],
-            timestamp: Date()
-        )
-        agent.messages.append(userMessage)
+        // Update editor context
+        if let file = appState.currentFile {
+            agent.updateEditorContext(
+                activeFile: file.path,
+                content: file.content,
+                cursorLine: nil,
+                selectedText: nil,
+                openFiles: appState.openFiles.map { $0.path },
+                language: file.language
+            )
+        }
         
-        let responseId = UUID().uuidString
-        let streamingMessage = AgentMessageModel(
-            id: responseId,
-            role: .assistant,
-            content: "",
-            toolResults: [],
-            pendingChanges: [],
-            timestamp: Date()
-        )
-        agent.messages.append(streamingMessage)
-        agent.isLoading = true
+        // Set workspace
+        if let workspace = appState.workspaceFolder {
+            agent.setWorkspace(workspace.path)
+        }
         
         let providerString = appState.aiProvider
-        let provider: StreamableAIProvider = StreamableAIProvider(rawValue: providerString) ?? .gemini
-        let model = appState.aiModel.isEmpty ? provider.defaultModel : appState.aiModel
+        let model = appState.aiModel.isEmpty ? (StreamableAIProvider(rawValue: providerString) ?? .gemini).defaultModel : appState.aiModel
         let apiKey = appState.apiKeys[providerString] ?? ""
         
-        let systemPrompt = "You are MicroCode, a senior software engineer. Provide professional, concise, and correct solutions. Use code blocks for all code snippets."
-        
-        // Build conversation history from existing messages (exclude the 2 we just added: user + streaming placeholder)
-        let history: [(role: String, content: String)] = agent.messages.dropLast(2)
-            .filter { $0.role == .user || $0.role == .assistant }
-            .filter { !$0.content.isEmpty }
-            .map { (role: $0.role.rawValue, content: $0.content) }
-        
-        AIClient.shared.sendMessage(
-            prompt: userText,
-            attachments: currentAttachments,
-            systemPrompt: systemPrompt,
-            conversationHistory: history,
-            provider: provider,
-            model: model,
-            apiKey: apiKey,
-            onToken: { token in
-                if let idx = self.agent.messages.firstIndex(where: { $0.id == responseId }) {
-                    let current = self.agent.messages[idx].content
-                    self.agent.messages[idx] = AgentMessageModel(
-                        id: responseId,
-                        role: .assistant,
-                        content: current + token,
-                        toolResults: [],
-                        pendingChanges: [],
-                        timestamp: Date()
-                    )
-                }
-            },
-            onComplete: { _ in self.agent.isLoading = false },
-            onError: { error in
-                if let idx = self.agent.messages.firstIndex(where: { $0.id == responseId }) {
-                    self.agent.messages[idx] = AgentMessageModel(
-                        id: responseId,
-                        role: .assistant,
-                        content: "Error: \(error)",
-                        toolResults: [],
-                        pendingChanges: [],
-                        timestamp: Date()
-                    )
-                }
-                self.agent.isLoading = false
+        if appState.agentMode {
+            // Agent Mode: Use AgentService pipeline (tool execution + agentic loop)
+            Task {
+                await agent.sendMessage(
+                    userText,
+                    provider: providerString,
+                    model: model,
+                    apiKey: apiKey,
+                    attachments: currentAttachments
+                )
             }
-        )
+        } else {
+            // Simple Chat Mode: Direct AIClient streaming
+            let userMessage = AgentMessageModel(
+                id: UUID().uuidString, role: .user,
+                content: userText + (currentAttachments.isEmpty ? "" : "\n[Attached: \(currentAttachments.map(\.name).joined(separator: ", "))]"),
+                toolResults: [], pendingChanges: [], timestamp: Date()
+            )
+            agent.messages.append(userMessage)
+            
+            let responseId = UUID().uuidString
+            agent.messages.append(AgentMessageModel(
+                id: responseId, role: .assistant, content: "",
+                toolResults: [], pendingChanges: [], timestamp: Date()
+            ))
+            agent.isLoading = true
+            
+            let provider: StreamableAIProvider = StreamableAIProvider(rawValue: providerString) ?? .gemini
+            let history: [(role: String, content: String)] = agent.messages.dropLast(2)
+                .filter { $0.role == .user || $0.role == .assistant }
+                .filter { !$0.content.isEmpty }
+                .map { (role: $0.role.rawValue, content: $0.content) }
+            
+            AIClient.shared.sendMessage(
+                prompt: userText,
+                attachments: currentAttachments,
+                systemPrompt: "You are MicroCode, a senior software engineer. Provide professional, concise, and correct solutions. Use code blocks for all code snippets.",
+                conversationHistory: history,
+                provider: provider,
+                model: model,
+                apiKey: apiKey,
+                onToken: { token in
+                    if let idx = self.agent.messages.firstIndex(where: { $0.id == responseId }) {
+                        let current = self.agent.messages[idx].content
+                        self.agent.messages[idx] = AgentMessageModel(
+                            id: responseId, role: .assistant, content: current + token,
+                            toolResults: [], pendingChanges: [], timestamp: Date()
+                        )
+                    }
+                },
+                onComplete: { _ in self.agent.isLoading = false },
+                onError: { error in
+                    if let idx = self.agent.messages.firstIndex(where: { $0.id == responseId }) {
+                        self.agent.messages[idx] = AgentMessageModel(
+                            id: responseId, role: .assistant, content: "Error: \(error)",
+                            toolResults: [], pendingChanges: [], timestamp: Date()
+                        )
+                    }
+                    self.agent.isLoading = false
+                }
+            )
+        }
     }
 }
 
