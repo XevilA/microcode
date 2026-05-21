@@ -2088,6 +2088,7 @@ struct NotebookView: View {
     @StateObject private var viewModel = NotebookViewModel()
     @ObservedObject private var pythonEnvManager = PythonEnvManager.shared
     @ObservedObject private var shmService = SharedMemoryService.shared
+    @ObservedObject private var cloudGPU = CloudGPUService.shared
     @State private var isReady = false
     @State private var showAIPanel = false
     @State private var showingHPCSettings = false
@@ -2543,6 +2544,16 @@ struct NotebookView: View {
                 HStack(spacing: 4) {
                     Image(systemName: appState.currentComputeTarget.icon)
                         .foregroundColor(appState.currentComputeTarget.isPremium ? .orange : .secondary)
+                    // When connected to MicroCode Cloud, show "MicroCode Cloud · <GPU>"
+                    // so the user can see at a glance which GPU is live and that the
+                    // auto-switch fired.
+                    if appState.currentComputeTarget == .customHPC,
+                       let s = cloudGPU.activeSession {
+                        Text("MicroCode Cloud · \(s.gpuLabel)")
+                            .font(.system(size: 11, weight: .medium))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
                     Image(systemName: "chevron.down")
                         .font(.system(size: 8))
                 }
